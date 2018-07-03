@@ -15,60 +15,63 @@ library(data.table)
 
 dashboardPage(
   skin = "green",
+  ## 0 1.1 Header ####
   dashboardHeader(title = "Analiza sprzedaży PGF SA"),
+  
+  ## 0.1.2 Sidebar####
   dashboardSidebar(sidebarMenu(
+    ## 0.1.2.1 Zakładki sidebar####
     menuItem("Podstawowe statystyki", tabName = "ymplot"),
-    menuItem("Przegląd pseudoefedryny", tabName = "pseudo_przeglad"),
-    menuItem("Przeglad deficytów", tabName = "ymplot"),
+    menuItem("Przegląd pseudoefedryny", tabName = "pseudoefedryna"),
+    menuItem("Przeglad deficytów", tabName = "deficyty"),
     menuItem("Przegląd refundowanych", tabName = "ymplot"),
-    menuItem("Przegląd wyrbanych CKT", tabName = "ymplot"),
+    menuItem("Przegląd wybranych CKT", tabName = "ymplot"),
+    menuItem("Kanibalizacja rynku", tabName = "ymplot"),
     menuItem("Export danych do excel", tabName = "ymplot"),
     menuItem("Generowanie raportów HTML", tabName = "ymplot")
   )),
+  ## 0.1.3 Body #####
   dashboardBody(
     tabItems(tabItem(
-      ##tabItem pseudoefedryna####
+      ## 0.1.3.1 Zawartość przegląd pseudoefedryny####
       "pseudoefedryna",
-      
       fluidRow(
         box(
           width = 4,
           sliderInput(
-            "Proc",
+            "Proc_pseudo",
             "Wskaźnik udziału pseudoefedryny w zakupach:",
             min = 0,
             max = 100,
             value = 5
           ),
           sliderInput(
-            "Wart",
+            "Wart_pseudo",
             "Wartość zakupu pseudoefedryny w tys zł:",
             min = 1,
             max = 1000,
             value = 5
           ),
           dateRangeInput(
-            'dateRange',
+            'dateRange_pseudo',
             label = 'Wybierz okres: RRRR-MM-DD',
             start = ymd("2016-06-01"),
             end = Sys.Date()
           )
-          
         ),
-        
         box(
           width = 8,
           title = "Apteki kupujące pseudoefedrynę",
-          plotlyOutput("pseudoPlot")
+          plotlyOutput("pseudo_scatter_plot")
         ),
         box(width = 12,
-            title = "Wyniki zaznaczeń"),
-               dataTableOutput("brush")
-        ),
+            title = "Ramka danych z zaznaczenia"),
+        dataTableOutput("dt_pseudo_select")
+      ),
       box(width = 12,
-          title = "Wyniki zaznaczeń2"),
-          plotlyOutput("select2")
-    ),
+          title = "Wykres YM z zaznaczenia"),
+      plotlyOutput("ym_pseudo_plot_select")
+    ), ##</0.1.3.1####
     tabItem(
       "pseudo_przeglad",
       box(
@@ -92,6 +95,46 @@ dashboardPage(
         plotlyOutput("pseudoPlotYM_CKK")
       )
      
+    ),
+    tabItem(
+      ## 0.1.3.7 Zawartość przegląd deficytówy####
+      "deficyty",
+      fluidRow(
+        box(
+          width = 4,
+          sliderInput(
+            "Proc_def",
+            "Wskaźnik udziału deficytów w zakupach:",
+            min = 0,
+            max = 100,
+            value = 20
+          ),
+          sliderInput(
+            "Wart_def",
+            "Wartość zakupu deficytów w tys zł:",
+            min = 1,
+            max = 1000,
+            value = 20
+          ),
+          dateRangeInput(
+            'dateRange_def',
+            label = 'Wybierz okres: RRRR-MM-DD',
+            start = ymd("2016-06-01"),
+            end = Sys.Date()
+          )
+      ),
+        box(
+          width = 8,
+          title = "Apteki kupujące deficyty",
+          plotlyOutput("def_scatter_plot")
+        ),
+        box(width = 12,
+            title = "Ramka danych"),
+        dataTableOutput("dt_def_select")
+      ),
+      box(width = 12,
+          title = "Wykres YM dla zaznaczonych CKK"),
+      plotlyOutput("ym_def_plot_select")
     )
   )
   

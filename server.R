@@ -14,45 +14,55 @@ shinyServer(function(input, output, session) {
    
   
   ## 0.1.1 Scatter plot Wartość w zł vs Udział % wskaźnika psedoefedryny ####
-  output$pseudoPlot <- renderPlotly({
-    
-
-  d1 <- input$dateRange[1]
-  d2 <- input$dateRange[2]  
-  p3 <- input$Proc
-  p4 <- input$Wart
-    
-    dataToPlot <- YM_ALL_WSK_PSEUDO %>%
-      mutate(YMD = ymd(paste0(YM, "-01"))) %>%
-      filter(YMD >=d1, YMD <= d2) %>%
-      group_by(CKK) %>%
-      summarise(WCSN_ALL = sum(WCSN_ALL, na.rm = T),
-                WCSN_PSEUDO = sum(WCSN_PSEUDO, na.rm = T)) %>%
-      mutate(WSK_PSEUDO = WCSN_PSEUDO/WCSN_ALL,
-             WSK_PSEUDO = ifelse(WSK_PSEUDO > 1, 1, WSK_PSEUDO),
-             WSK_PSEUDO = ifelse(WSK_PSEUDO < 0, 0, WSK_PSEUDO)) %>%
-      filter(WSK_PSEUDO >= input$Proc/100) %>%
-      filter(WCSN_PSEUDO >= input$Wart * 1000) %>%
-      left_join(select(BAZA_CKK, -GPS, -NIP), by = c("CKK"="ID")) %>%
-      mutate(LP = 1:n())
-      
+  output$pseudo_scatter_plot <- renderPlotly({
+    dataToPlot <- DaneDoScatter(
+      dane = YM_ALL_WSK,
+      input_data_start = input$dateRange_pseudo[1],
+      input_data_koniec = input$dateRange_pseudo[2],
+      input_proc = input$Proc_pseudo,
+      input_wart = input$Wart_pseudo,
+      Wart_COL = "WCSN_PSEUDO",
+      WSK_COL = "WSK_PSEUDO"
+    )
     
     
-
- 
-    plot_ly(dataToPlot, x = ~WCSN_PSEUDO, y = ~WSK_PSEUDO, type = 'scatter', mode = 'markers',
-            hoverinfo = 'text', source = "scatterZaznacz",
-            text = ~paste('CKK: ', CKK,
-                          '</br>',
-                          '</br> Wartość sprzedaży pseudoefedryna w zł: ',paste0(round(WCSN_PSEUDO/1000,1),"tys"),
-                          '</br> Udział %: ', percent(WSK_PSEUDO),
-                          '</br> Płatnik: ', PLATNIK,
-                          '</br> Miasto: ', MIEJSCOWOSC,
-                          '</br> Ulica: ', ULICA)) %>% 
-      layout(dragmode = "select",
-             xaxis = list(title = "Wartość w zł", range = c(0,2 * 1000 * 1000)),
-             yaxis = list(title = "Wskaźnik %", range = c(0,1.05), tickformat = "%"),
-             shapes = list(hline(input$Proc/100, color = "red"), vline(input$Wart*1000, color = "red"))) %>%
+    plot_ly(
+      dataToPlot,
+      x = ~ WCSN_PSEUDO,
+      y = ~ WSK_PSEUDO,
+      type = 'scatter',
+      mode = 'markers',
+      hoverinfo = 'text',
+      source = "pseudo_scatter",
+      text = ~ paste(
+        'CKK: ',
+        CKK,
+        '</br>',
+        '</br> Wartość sprzedaży pseudoefedryna w zł: ',
+        paste0(round(WCSN_PSEUDO / 1000, 1), "tys"),
+        '</br> Udział %: ',
+        percent(WSK_PSEUDO),
+        '</br> Płatnik: ',
+        PLATNIK,
+        '</br> Miasto: ',
+        MIEJSCOWOSC,
+        '</br> Ulica: ',
+        ULICA
+      )
+    ) %>%
+      layout(
+        dragmode = "select",
+        xaxis = list(title = "Wartość w zł", range = c(0, 2 * 1000 * 1000)),
+        yaxis = list(
+          title = "Wskaźnik %",
+          range = c(0, 1.05),
+          tickformat = "%"
+        ),
+        shapes = list(
+          hline(input$Proc / 100, color = "red"),
+          vline(input$Wart * 1000, color = "red")
+        )
+      ) %>%
       config(displayModeBar = F)
     
   })
@@ -107,85 +117,179 @@ shinyServer(function(input, output, session) {
   })
   
   ## 0.1.4 ####
-  output$hover <- renderPrint({
-    d <- event_data("plotly_hover")
-    if (is.null(d)) "Hover events appear here (unhover to clear)" else d
-  })
-  
+
   ## 0.1.5 ####
-  output$click <- renderPrint({
-    d <- event_data("plotly_click")
-    if (is.null(d)) "Click events appear here (double-click to clear)" else d
-  })
-  
-  ## 0.1.6 ####
-  output$brush <- renderDataTable({
-    d <- event_data("plotly_selected", source = "scatterZaznacz")
-    if (is.null(d)) {
-      cat("Click and drag events (i.e., select/lasso) appear here (double-click to clear)") 
+
+  ## 0.1.6 dt_pseudo_select####
+  output$dt_pseudo_select <- renderDataTable({
+    pseudo_d_dt <- event_data("plotly_selected", source = "pseudo_scatter")
+    if (is.null(pseudo_d_dt)) {
+      tibble(x = "empty", y = "empty") 
       } else { 
        
-       d1 <- input$dateRange[1]
-        d2 <- input$dateRange[2]  
-        
-        dataToPlot <- YM_ALL_WSK_PSEUDO %>%
-          mutate(YMD = ymd(paste0(YM, "-01"))) %>%
-          filter(YMD >=d1, YMD <= d2) %>%
-          group_by(CKK) %>%
-          summarise(WCSN_ALL = sum(WCSN_ALL, na.rm = T),
-                    WCSN_PSEUDO = sum(WCSN_PSEUDO, na.rm = T)) %>%
-          mutate(WSK_PSEUDO = WCSN_PSEUDO/WCSN_ALL,
-                 WSK_PSEUDO = ifelse(WSK_PSEUDO > 1, 1, WSK_PSEUDO),
-                 WSK_PSEUDO = ifelse(WSK_PSEUDO < 0, 0, WSK_PSEUDO)) %>%
-          filter(WSK_PSEUDO >= input$Proc/100) %>%
-          filter(WCSN_PSEUDO >= input$Wart * 1000) %>%
-          left_join(select(BAZA_CKK, -GPS, -NIP), by = c("CKK"="ID")) %>%
-          mutate(LP = (1:n())-1) %>%
-          filter(LP %in% d$pointNumber)
+        dataToPlot <- DaneDoScatter(
+          dane = YM_ALL_WSK_PSEUDO,
+          input_data_start = input$dateRange_pseudo[1],
+          input_data_koniec = input$dateRange_pseudo[2],
+          input_proc = input$Proc_pseudo,
+          input_wart = input$Wart_pseudo,
+          Wart_COL = "WCSN_PSEUDO",
+          WSK_COL = "WSK_PSEUDO"
+        )
+          dataToPlot %>%
+          filter(LP %in% pseudo_d_dt$pointNumber)
         }
   })
   
-  ## 0.1.7 ####
-  output$select2 <- renderPlotly({
-    d <- event_data("plotly_selected", source = "scatterZaznacz")
-    if (is.null(d)) {
-      cat("Click and drag events (i.e., select/lasso) appear here (double-click to clear)") 
+  ## 0.1.7 ym_pseudo_plot_select ####
+  output$ym_pseudo_plot_select <- renderPlotly({
+    pseudo_d_ym <- event_data("plotly_selected", source = "pseudo_scatter")
+    if (is.null(pseudo_d_ym)) {
+      plot_ly(data = iris, x = ~Sepal.Length, y = ~Petal.Length)
     } else { 
       
-      d1 <- input$dateRange[1]
-      d2 <- input$dateRange[2]  
-      
-      dataToPlot_temp <- YM_ALL_WSK_PSEUDO %>%
-        mutate(YMD = ymd(paste0(YM, "-01"))) %>%
-        filter(YMD >=d1, YMD <= d2) %>%
-        group_by(CKK) %>%
-        summarise(WCSN_ALL = sum(WCSN_ALL, na.rm = T),
-                  WCSN_PSEUDO = sum(WCSN_PSEUDO, na.rm = T)) %>%
-        mutate(WSK_PSEUDO = WCSN_PSEUDO/WCSN_ALL,
-               WSK_PSEUDO = ifelse(WSK_PSEUDO > 1, 1, WSK_PSEUDO),
-               WSK_PSEUDO = ifelse(WSK_PSEUDO < 0, 0, WSK_PSEUDO)) %>%
-        filter(WSK_PSEUDO >= input$Proc/100) %>%
-        filter(WCSN_PSEUDO >= input$Wart * 1000) %>%
-        left_join(select(BAZA_CKK, -GPS, -NIP), by = c("CKK"="ID")) %>%
-        mutate(LP = (1:n())-1) %>%
-        filter(LP %in% d$pointNumber) %>%
+      dataToPlot_temp <- DaneDoScatter(
+        dane = YM_ALL_WSK,
+        input_data_start = input$dateRange_pseudo[1],
+        input_data_koniec = input$dateRange_pseudo[2],
+        input_proc = input$Proc_pseudo,
+        input_wart = input$Wart_pseudo,
+        Wart_COL = "WCSN_PSEUDO",
+        WSK_COL = "WSK_PSEUDO"
+      )
+      dataToPlot_temp <- dataToPlot_temp %>%
+        filter(LP %in% pseudo_d_ym$pointNumber) %>%
         select(CKK) 
       
-      dataToPlot <- YM_ALL_WSK_PSEUDO %>%
+      dataToPlot <- YM_ALL_WSK %>%
         filter(CKK %in% dataToPlot_temp$CKK) %>%
         mutate(WCSN_ALL_MINUS_PSEUDO = WCSN_ALL - WCSN_PSEUDO) %>%
         group_by(YMD) %>%
         summarise(WCSN_ALL_MINUS_PSEUDO = sum(WCSN_ALL_MINUS_PSEUDO, na.rm = T),
                   WCSN_PSEUDO = sum(WCSN_PSEUDO))
-
-    plot_ly(dataToPlot, x = ~YMD, y = ~WCSN_ALL_MINUS_PSEUDO, type = 'bar', name = 'Sprzedaż niepseudoefedryny') %>%
-      add_trace(y = ~WCSN_PSEUDO, name = 'Sprzedaż pseudoefedryny') %>%
-      layout(yaxis = list(title = 'Wartość w zł'), barmode = 'stack') %>%
-      config(displayModeBar = F)
-    
       
+      plot_ly(dataToPlot, x = ~YMD, y = ~WCSN_ALL_MINUS_PSEUDO, type = 'bar', name = 'Sprzedaż niepseudoefedryny') %>%
+        add_trace(y = ~WCSN_PSEUDO, name = 'Sprzedaż pseudoefedryny') %>%
+        layout(yaxis = list(title = 'Wartość w zł'), barmode = 'stack') %>%
+        config(displayModeBar = F)
     }
   })
   
-
+  
+  ## 0.1.8 Scatter plot Wartość w zl vs Udział % wskaźnika deficytów ####
+  output$def_scatter_plot <- renderPlotly({
+    dataToPlot <- DaneDoScatter(
+      dane = YM_ALL_WSK,
+      input_data_start = input$dateRange_def[1],
+      input_data_koniec = input$dateRange_def[2],
+      input_proc = input$Proc_def,
+      input_wart = input$Wart_def,
+      Wart_COL = "WCSN_DEF",
+      WSK_COL = "WSK_DEF"
+    )
+    
+    
+    plot_ly(
+      dataToPlot,
+      x = ~ WCSN_DEF,
+      y = ~ WSK_DEF,
+      type = 'scatter',
+      mode = 'markers',
+      hoverinfo = 'text',
+      source = "def_scatter",
+      text = ~ paste(
+        'CKK: ',
+        CKK,
+        '</br>',
+        '</br> Wartość sprzedaży deficytów w zł: ',
+        paste0(round(WCSN_DEF / 1000, 1), "tys"),
+        '</br> Udział %: ',
+        percent(WSK_DEF),
+        '</br> Płatnik: ',
+        PLATNIK,
+        '</br> Miasto: ',
+        MIEJSCOWOSC,
+        '</br> Ulica: ',
+        ULICA
+      )
+    ) %>%
+      layout(
+        dragmode = "select",
+        xaxis = list(title = "Wartość w zł", range = c(0, 2 * 1000 * 1000)),
+        yaxis = list(
+          title = "Wskaźnik %",
+          range = c(0, 1.05),
+          tickformat = "%"
+        ),
+        shapes = list(
+          hline(input$Proc / 100, color = "red"),
+          vline(input$Wart * 1000, color = "red")
+        )
+      ) %>%
+      config(displayModeBar = F)
+    
+  })
+  
+  ## 0.1.7 dt_def_select ####
+  output$dt_def_select <- renderDataTable({
+    def_d_dt <- event_data("plotly_selected", source = "def_scatter")
+    if (is.null(def_d_dt)) {
+      tibble(x = "empty")
+    } else { 
+      
+      dataToPlot <- DaneDoScatter(
+        dane = YM_ALL_WSK,
+        input_data_start = input$dateRange_def[1],
+        input_data_koniec = input$dateRange_def[2],
+        input_proc = input$Proc_def,
+        input_wart = input$Wart_def,
+        Wart_COL = "WCSN_DEF",
+        WSK_COL = "WSK_DEF"
+      )
+        dataToPlot %>%
+        filter(LP %in% def_d_dt$pointNumber)
+    }
+  })
+  
+  
+  
+  
+  
+  
+  
+  ## 0.1.7 ym_def_plot_select ####
+  output$ym_def_plot_select <- renderPlotly({
+    def_d_YM <- event_data("plotly_selected", source = "def_scatter")
+    if (is.null(def_d_YM)) {
+     
+    } else { 
+      
+      dataToPlot_temp <- DaneDoScatter(
+        dane = YM_ALL_WSK,
+        input_data_start = input$dateRange_def[1],
+        input_data_koniec = input$dateRange_def[2],
+        input_proc = input$Proc_def,
+        input_wart = input$Wart_def,
+        Wart_COL = "WCSN_DEF",
+        WSK_COL = "WSK_DEF"
+      )
+      dataToPlot_temp <- dataToPlot_temp %>%
+        filter(LP %in% def_d_YM$pointNumber) %>%
+        select(CKK) 
+      
+      dataToPlot <- YM_ALL_WSK %>%
+        filter(CKK %in% dataToPlot_temp$CKK) %>%
+        mutate(WCSN_ALL_MINUS_DEF = WCSN_ALL - WCSN_DEF) %>%
+        group_by(YMD) %>%
+        summarise(WCSN_ALL_MINUS_DEF = sum(WCSN_ALL_MINUS_DEF, na.rm = T),
+                  WCSN_DEF = sum(WCSN_DEF))
+      
+      plot_ly(dataToPlot, x = ~YMD, y = ~WCSN_ALL_MINUS_DEF, type = 'bar', name = 'Sprzedaż niedeficytow') %>%
+        add_trace(y = ~WCSN_DEF, name = 'Sprzedaż deficytów') %>%
+        layout(yaxis = list(title = 'Wartość w zł'), barmode = 'stack') %>%
+        config(displayModeBar = F)
+      
+      
+    }
+  })
 })
