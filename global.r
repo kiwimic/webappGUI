@@ -13,6 +13,25 @@ myDB <- dbConnect(RSQLite::SQLite(), "C:/Users/msiwik/Desktop/FOLDER R/Analiza_P
 YM_ALL_WSK <- dbSendQuery(myDB_YM, "SELECT * FROM WSK_YM") %>% fetch()
 BAZA_CKK <- dbSendQuery(myDB, "SELECT * FROM tab3") %>% fetch()
 
+### Takie zapytanie to około 30 sekund na moim komputerze
+# Sys.time()
+# tbl(myDB, "tab1") %>%
+#   filter(CKT %in% c(140452,
+#                     119519,
+#                     209498,
+#                     237820,
+#                     209120,
+#                     204810,
+#                     112932,
+#                     11222,
+#                     138378,
+#                     154642
+#                     
+#   )) %>%
+#   group_by(CKK, CKT, DATA_ZAFAKTUROWANIA) %>%
+#   summarise(WCSN = sum(WCSN, na.rm = T)) %>%
+#   collect()
+# Sys.time()  
 
 YM_ALL_WSK_PSEUDO <- YM_ALL_WSK %>%
   filter(!is.na(WCSN_PSEUDO)) %>%
