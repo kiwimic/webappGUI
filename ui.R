@@ -17,9 +17,13 @@ dashboardPage(
   skin = "green",
   dashboardHeader(title = "Analiza sprzedaży PGF SA"),
   dashboardSidebar(sidebarMenu(
-    menuItem("Pseudoefedryna", tabName = "pseudoefedryna"),
-    menuItem("Pseudoefedryna Przeglad", tabName = "pseudo_przeglad"),
-    menuItem("Wykres YM", tabName = "ymplot")
+    menuItem("Podstawowe statystyki", tabName = "ymplot"),
+    menuItem("Przegląd pseudoefedryny", tabName = "pseudo_przeglad"),
+    menuItem("Przeglad deficytów", tabName = "ymplot"),
+    menuItem("Przegląd refundowanych", tabName = "ymplot"),
+    menuItem("Przegląd wyrbanych CKT", tabName = "ymplot"),
+    menuItem("Export danych do excel", tabName = "ymplot"),
+    menuItem("Generowanie raportów HTML", tabName = "ymplot")
   )),
   dashboardBody(
     tabItems(tabItem(
