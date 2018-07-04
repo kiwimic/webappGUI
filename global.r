@@ -34,12 +34,12 @@ BAZA_CKK <- dbSendQuery(myDB, "SELECT * FROM tab3") %>% fetch()
 # Sys.time()  
 
 
-tbl(myDB, "tab1") %>%
-     filter(CKK == 123812) %>%
-   group_by(CKK, CKT, DATA_ZAFAKTUROWANIA) %>%
-   summarise(WCSN = sum(WCSN, na.rm = T)) %>%
-   collect() %>%
-   mutate(YMD_HMS = as.POSIXct(DATA_ZAFAKTUROWANIA, origin = "1970-01-01 00:00:00 UTC"))-> test_123812
+# tbl(myDB, "tab1") %>%
+#      filter(CKK == 123812) %>%
+#    group_by(CKK, CKT, DATA_ZAFAKTUROWANIA) %>%
+#    summarise(WCSN = sum(WCSN, na.rm = T)) %>%
+#    collect() %>%
+#    mutate(YMD_HMS = as.POSIXct(DATA_ZAFAKTUROWANIA, origin = "1970-01-01 00:00:00 UTC"))-> test_123812
 
 
 YM_ALL_WSK_PSEUDO <- YM_ALL_WSK %>%
@@ -101,12 +101,14 @@ filter_col <- function(df, col_name_as_string, val){
   df %>% filter((!!col_name) == val)
 }
 
-DaneDoScatter(dane = YM_ALL_WSK,
-              input_data_start = "2018-01-01",
-              input_data_koniec = "2018-11-01",
-              Wart_COL = "WCSN_DEF",
-              WSK_COL = "WSK_DEF"
-              ) -> test
+#DaneDoScatter(dane = YM_ALL_WSK,
+#              input_data_start = "2018-01-01",
+#              input_data_koniec = "2018-11-01",
+#              Wart_COL = "WCSN_DEF",
+#              WSK_COL = "WSK_DEF",
+#              input_proc = 5,
+#              input_wart = 10
+#              ) -> test
 ## Scatter plot plotly #####
 DaneDoScatter <- function(dane,
                           WSK, 
@@ -136,6 +138,8 @@ DaneDoScatter <- function(dane,
   filter((!!sym_WSK_COL) >= input_proc/100) %>%
   filter((!!sym_Wart_COL) >= input_wart  * 1000) %>%
   left_join(select(BAZA_CKK, -GPS, -NIP), by = c("CKK"="ID")) %>%
+  ungroup() %>%
+  arrange(desc((!!sym_Wart_COL))) %>%
   mutate(LP = (1:n())-1) -> ret
   
   return(ret)
@@ -146,6 +150,65 @@ DaneDoScatter <- function(dane,
 }
 
 
-ScatterPlotly <- function() {
+ScatterPlotly <- function(dane,
+                          fragmentOpisu = "pseudoefedryny",
+                          input_proc = 40,
+                          input_wart = 50,
+                          Wart_COL = "WCSN_PSEUDO",
+                          WSK_COL = "WSK_PSEUDO") {
+  sym_Wart_COL <- rlang::sym(Wart_COL)
+  #sym_Wart_COL <- enquo(sym_Wart_COL)
+  sym_WSK_COL <- rlang::sym(WSK_COL)
+  #sym_WSK_COL <- enquo(sym_WSK_COL)
+  stringZopisem <- paste0("</br> Wartość sprzedaży ", fragmentOpisu, " w zł: ")
   
+plot_ly(
+    dane,
+    x = dane[[Wart_COL]],
+    y = dane[[WSK_COL]],
+    type = 'scatter',
+    mode = 'markers',
+    hoverinfo = 'text',
+    source = "pseudo_scatter",
+    text = ~ paste(
+      'CKK: ',
+      CKK,
+      '</br>',
+      stringZopisem,
+      paste0(round(dane[[Wart_COL]] / 1000, 1), "tys"),
+      '</br> Udział %: ',
+      percent(dane[[WSK_COL]]),
+      '</br> Płatnik: ',
+      PLATNIK,
+      '</br> Miasto: ',
+      MIEJSCOWOSC,
+      '</br> Ulica: ',
+      ULICA,
+      '</br> LP: ', dane[['LP']])
+) %>%
+  layout(
+    dragmode = "select",
+    xaxis = list(title = "Wartość w zł", range = c(0, 2 * 1000 * 1000)),
+    yaxis = list(
+      title = "Wskaźnik %",
+      range = c(0, 1.05),
+      tickformat = "%"
+    ),
+    shapes = list(
+      hline(input_proc / 100, color = "red"),
+      vline(input_wart * 1000, color = "red")
+    )
+  ) %>%
+  config(displayModeBar = F)
 }
+# 
+# ScatterPlotly(dane = test,
+#               input_proc = 10,
+#               input_wart = 20,
+#               WSK_COL = "WSK_DEF",
+#               Wart_COL = "WCSN_DEF",
+#               fragmentOpisu = "deficytów")
+# 
+
+
+
