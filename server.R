@@ -8,6 +8,7 @@ library(plotly)
 library(RSQLite)
 library(lubridate)
 library(data.table)
+library(leaflet)
 
 ## 0.1.0 Serwer ####
 shinyServer(function(input, output, session) {
@@ -74,25 +75,37 @@ shinyServer(function(input, output, session) {
     #   config(displayModeBar = F)
     
   })
-  ## 0.1.2 ####
-  output$pseudoPlotYM <- renderPlotly({
+  ## 0.1.2 all_ym_bar####
+  output$all_ym_bar <- renderPlotly({
     
     
-  
-    dataToPlot <- YM_PSEUDO_PLOT2
     
-    plot_ly(dataToPlot, x = ~YMD, y = ~WCSN_PSEUDO, color = ~WSK, type = "bar", 
-            hoverinfo = 'text',
-            text = ~paste('CKK: ', CKK,
-                          '</br>',
-                          '</br> Wartość sprzedaży pseudoefedryna w zł: ',paste0(round(WCSN_PSEUDO/1000,1),"tys"),
-                          '</br> Udział %: ', percent(PROC),
-                          '</br> Płatnik: ', PLATNIK,
-                          '</br> Miasto: ', MIEJSCOWOSC,
-                          '</br> Ulica: ', ULICA)) %>%
-      layout(yaxis = list(title = 'Wartość w zł'), barmode = 'stack') %>%
-       config(displayModeBar = F)
+   YM_ALL_WSK_grouped <- YM_ALL_WSK %>%
+      group_by(YMD) %>%
+      summarise(WCSN_ALL = sum(WCSN_ALL, na.rm = T),
+                WCSN_DEF = sum(WCSN_DEF, na.rm = T),
+                WCSN_PSEUDO = sum(WCSN_PSEUDO, na.rm = T),
+                WCSN_REF = sum(WCSN_REF, na.rm = T),
+                WCSN_ALL_DIFF = WCSN_ALL - WCSN_DEF- WCSN_PSEUDO - WCSN_REF) %>%
+      gather(Kat, Wart, WCSN_DEF:WCSN_ALL_DIFF) %>%
+      group_by(YMD) %>%
+      mutate(PROC = Wart/sum(Wart),
+             PROC_label = percent(PROC)) %>%
+      ungroup() %>%
+      mutate(Wart = round(Wart))
+    
+    plot_ly(data =YM_ALL_WSK_grouped, 
+            x = ~YMD,
+            y = ~Wart,
+            color = ~Kat,
+            type = "bar",
+            text = ~PROC_label,
+            textposition = 'auto') %>%
+      layout(yaxis = list(title = 'Wartość w zł'), barmode = 'stack')
       
+    
+    
+    
   })
   
   ## 0.1.3 ####
@@ -136,7 +149,7 @@ shinyServer(function(input, output, session) {
       } else { 
        
         dataToPlot <- DaneDoScatter(
-          dane = YM_ALL_WSK_PSEUDO,
+          dane = YM_ALL_WSK,
           input_data_start = input$dateRange_pseudo[1],
           input_data_koniec = input$dateRange_pseudo[2],
           input_proc = input$Proc_pseudo,
@@ -279,7 +292,7 @@ shinyServer(function(input, output, session) {
   output$ym_def_plot_select <- renderPlotly({
     def_d_YM <- event_data("plotly_selected", source = "def_scatter")
     if (is.null(def_d_YM)) {
-     
+      plot_ly(data = iris, x = ~Sepal.Length, y = ~Petal.Length)
     } else { 
       
       dataToPlot_temp <- DaneDoScatter(
@@ -310,4 +323,188 @@ shinyServer(function(input, output, session) {
       
     }
   })
+  
+  
+  ## 0.1.10 Scatter plot Wartość w zł vs Udział % wskaźnika ref ####
+  output$ref_scatter_plot <- renderPlotly({
+    dataToPlot <- DaneDoScatter(
+      dane = YM_ALL_WSK,
+      input_data_start = input$dateRange_ref[1],
+      input_data_koniec = input$dateRange_ref[2],
+      input_proc = input$Proc_ref,
+      input_wart = input$Wart_ref,
+      Wart_COL = "WCSN_REF",
+      WSK_COL = "WSK_REF"
+    )
+    
+    ScatterPlotly(dane = dataToPlot,
+                  input_proc = input$Proc_ref,
+                  input_wart = input$Wart_ref,
+                  Wart_COL = "WCSN_REF",
+                  WSK_COL = "WSK_REF",
+                  fragmentOpisu = "refundacji",
+                  source = "ref_scatter")
+    
+    
+    # plot_ly(
+    #   dataToPlot,
+    #   x = ~ WCSN_PSEUDO,
+    #   y = ~ WSK_PSEUDO,
+    #   type = 'scatter',
+    #   mode = 'markers',
+    #   hoverinfo = 'text',
+    #   source = "pseudo_scatter",
+    #   text = ~ paste(
+    #     'CKK: ',
+    #     CKK,
+    #     '</br>',
+    #     '</br> Wartość sprzedaży pseudoefedryna w zł: ',
+    #     paste0(round(WCSN_PSEUDO / 1000, 1), "tys"),
+    #     '</br> Udział %: ',
+    #     percent(WSK_PSEUDO),
+    #     '</br> Płatnik: ',
+    #     PLATNIK,
+    #     '</br> Miasto: ',
+    #     MIEJSCOWOSC,
+    #     '</br> Ulica: ',
+    #     ULICA
+    #   )
+    # ) %>%
+    #   layout(
+    #     dragmode = "select",
+    #     xaxis = list(title = "Wartość w zł", range = c(0, 2 * 1000 * 1000)),
+    #     yaxis = list(
+    #       title = "Wskaźnik %",
+    #       range = c(0, 1.05),
+    #       tickformat = "%"
+    #     ),
+    #     shapes = list(
+    #       hline(input$Proc / 100, color = "red"),
+    #       vline(input$Wart * 1000, color = "red")
+    #     )
+    #   ) %>%
+    #   config(displayModeBar = F)
+    
+  })
+  
+  
+  ## 0.1.11 dt_ref_select####
+  output$dt_ref_select <- renderDataTable({
+    ref_d_dt <- event_data("plotly_selected", source = "ref_scatter")
+    if (is.null(ref_d_dt)) {
+      tibble(x = "empty", y = "empty") 
+    } else { 
+      
+      dataToPlot <- DaneDoScatter(
+        dane = YM_ALL_WSK,
+        input_data_start = input$dateRange_ref[1],
+        input_data_koniec = input$dateRange_ref[2],
+        input_proc = input$Proc_ref,
+        input_wart = input$Wart_ref,
+        Wart_COL = "WCSN_REF",
+        WSK_COL = "WSK_REF"
+      )
+      dataToPlot %>%
+        filter(LP %in% ref_d_dt$pointNumber)
+      #pseudo_d_dt
+    }
+  })
+  
+  
+  ## 0.1.12 ym_ref_plot_select ####
+  output$ym_ref_plot_select <- renderPlotly({
+    ref_d_YM <- event_data("plotly_selected", source = "ref_scatter")
+    if (is.null(ref_d_YM)) {
+      plot_ly(data = iris, x = ~Sepal.Length, y = ~Petal.Length)
+    } else { 
+      
+      dataToPlot_temp <- DaneDoScatter(
+        dane = YM_ALL_WSK,
+        input_data_start = input$dateRange_ref[1],
+        input_data_koniec = input$dateRange_ref[2],
+        input_proc = input$Proc_ref,
+        input_wart = input$Wart_ref,
+        Wart_COL = "WCSN_REF",
+        WSK_COL = "WSK_REF"
+      )
+      dataToPlot_temp <- dataToPlot_temp %>%
+        filter(LP %in% ref_d_YM$pointNumber) %>%
+        select(CKK) 
+      
+      dataToPlot <- YM_ALL_WSK %>%
+        filter(CKK %in% dataToPlot_temp$CKK) %>%
+        mutate(WCSN_ALL_MINUS_REF = WCSN_ALL - WCSN_REF) %>%
+        group_by(YMD) %>%
+        summarise(WCSN_ALL_MINUS_REF = sum(WCSN_ALL_MINUS_REF, na.rm = T),
+                  WCSN_REF = sum(WCSN_REF))
+      
+      plot_ly(dataToPlot, x = ~YMD, y = ~WCSN_ALL_MINUS_REF, type = 'bar', name = 'Sprzedaż nierefundowanych') %>%
+        add_trace(y = ~WCSN_REF, name = 'Sprzedaż refundowanych') %>%
+        layout(yaxis = list(title = 'Wartość w zł'), barmode = 'stack') %>%
+        config(displayModeBar = F)
+      
+      
+    }
+  })
+  
+## 0.1.8 Kanibalizacja mapa#####  
+ output$kanibalizm_mapa <-  renderLeaflet({
+   
+   Apteka_dane <- read.csv2(paste0("C:\\Users\\msiwik\\Desktop\\FOLDER R\\Analiza_Prepeparatow\\Dane\\GPS\\",
+                                    input$kanibalizm_ckk, ".csv"))
+   
+   AptekaCentrum <- as.numeric(input$kanibalizm_ckk)
+   centr_LNG <- Mam_GPS_temp$lng[Mam_GPS_temp$ID==AptekaCentrum]
+   centr_LAT <- Mam_GPS_temp$lat[Mam_GPS_temp$ID==AptekaCentrum]
+   
+   Apteka_dane %>%
+     filter(Dist_in_meters <= input$kanibalizm_km * 1000) %>%
+     left_join(select(Mam_GPS_temp, ID, lng, lat), by = c("ID_2"="ID")) %>%
+   leaflet() %>%
+     addTiles() %>%
+     setView(lng = centr_LNG, lat = centr_LAT, zoom = 8) %>%
+     addMarkers(lng =  ~lng,
+                lat = ~lat) %>%
+     addCircleMarkers(centr_LNG, centr_LAT)
+   
+   # ~paste0("CKK apteki: ", CKK,
+   #         "<br>",
+   #         "Miasto: ",MIEJSCOWOSC,
+   #         "<br>",
+   #         "Ulica: ", ULICA,
+   #         "<br>",
+   #         "Udział pseudoefedryny w zakupach: ", percent(WSK_PSEUDOEFEDRYNA),
+   #         "<br>",
+   #         "Wartość zakupu pseudoefedryny: ", paste0(round(PSEUDOEFEDRYNA_WCSN/1000), "tys. zł."),
+   #         "<br>",
+   #         "Za okres: ", "od 2018-01-01 do 2018-05-31")
+   
+ })
+ 
+ output$kanibalizm_dt <- renderDataTable({
+   
+   Apteka_dane <- read.csv2(paste0("C:\\Users\\msiwik\\Desktop\\FOLDER R\\Analiza_Prepeparatow\\Dane\\GPS\\",
+                                   input$kanibalizm_ckk, ".csv"))
+   
+   AptekaCentrum <- as.numeric(input$kanibalizm_ckk)
+   
+   Apteka_dane %>%
+     filter(Dist_in_meters <= input$kanibalizm_km * 1000) %>%
+     left_join(select(Mam_GPS_temp, ID, lng, lat), by = c("ID_2"="ID")) %>%
+     select(ID_2) -> WybraneApteki
+   
+ YM_ALL_WSK %>%
+     filter(CKK %in% WybraneApteki$ID_2) %>%
+     mutate(YMD = ymd(paste0(YM, "-01"))) %>%
+     filter(YMD >= ymd(input$kanibalizm_daterange[1]),
+            YMD <= ymd(input$kanibalizm_daterange[2])) %>%
+     group_by(CKK) %>%
+     summarise(WCSN_ALL = sum(WCSN_ALL, na.rm = T)) %>%
+     arrange(desc(WCSN_ALL)) %>%
+     mutate(Udzial_proc = percent(WCSN_ALL/sum(WCSN_ALL))) %>%
+     left_join(select(BAZA_CKK, ID, PLATNIK, NIP, MIEJSCOWOSC, ULICA, STATUS, RODZAJ_PODMIOTU), by = c("CKK"="ID"))
+    
+   
+ })
+ 
 })

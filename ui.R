@@ -21,12 +21,12 @@ dashboardPage(
   ## 0.1.2 Sidebar####
   dashboardSidebar(sidebarMenu(
     ## 0.1.2.1 Zakładki sidebar####
-    menuItem("Podstawowe statystyki", tabName = "ymplot"),
+    menuItem("Podstawowe statystyki", tabName = "podst_stats"),
     menuItem("Przegląd pseudoefedryny", tabName = "pseudoefedryna"),
     menuItem("Przeglad deficytów", tabName = "deficyty"),
-    menuItem("Przegląd refundowanych", tabName = "ymplot"),
+    menuItem("Przegląd refundowanych", tabName = "refundacja"),
     menuItem("Przegląd wybranych CKT", tabName = "ymplot"),
-    menuItem("Kanibalizacja rynku", tabName = "ymplot"),
+    menuItem("Kanibalizacja rynku", tabName = "kanibalizm"),
     menuItem("Export danych do excel", tabName = "ymplot"),
     menuItem("Generowanie raportów HTML", tabName = "ymplot")
   )),
@@ -73,12 +73,92 @@ dashboardPage(
       plotlyOutput("ym_pseudo_plot_select")
     ), ##</0.1.3.1####
     tabItem(
-      "pseudo_przeglad",
+      ## 0.1.3.1 Zawartość przegląd pseudoefedryny####
+      "refundacja",
+      fluidRow(
+        box(
+          width = 4,
+          sliderInput(
+            "Proc_ref",
+            "Wskaźnik udziału refundacji w zakupach:",
+            min = 0,
+            max = 100,
+            value = 50
+          ),
+          sliderInput(
+            "Wart_ref",
+            "Wartość zakupu refundacji w tys zł:",
+            min = 1,
+            max = 1000,
+            value = 50
+          ),
+          dateRangeInput(
+            'dateRange_ref',
+            label = 'Wybierz okres: RRRR-MM-DD',
+            start = ymd("2016-06-01"),
+            end = Sys.Date()
+          )
+        ),
+        box(
+          width = 8,
+          title = "Apteki kupujące pseudoefedrynę",
+          plotlyOutput("ref_scatter_plot")
+        ),
+        box(width = 12,
+            title = "Ramka danych z zaznaczenia"),
+        dataTableOutput("dt_ref_select")
+      ),
+      box(width = 12,
+          title = "Wykres YM z zaznaczenia"),
+      plotlyOutput("ym_ref_plot_select")
+    ),
+    tabItem(
+      "podst_stats",
       box(
         width = 12,
-        title = "Apteki kupujące pseudoefedrynę",
-        plotlyOutput("pseudoPlotYM")
+        title = "Rozkład miesięczny sprzedaży PGF SA",
+        plotlyOutput("all_ym_bar")
       )
+    ), ##Dopracować ta liste :)####
+    tabItem(
+      "kanibalizm",
+      fluidRow(
+      box(width = 4,
+                    selectizeInput(
+                      'kanibalizm_ckk', label = "Wybierz CKK apteki",
+                      choices = as.numeric(gsub(list.files(path = "C:\\Users\\msiwik\\Desktop\\FOLDER R\\Analiza_Prepeparatow\\Dane\\GPS\\"), 
+                                     pattern = "\\.csv",
+                                     replacement = "")),
+                      options = NULL, selected = 16571
+                    ),
+                    sliderInput(
+                      "kanibalizm_km",
+                      "Wskaż apteki w odległości x km od wybranej apteki:",
+                      min = 0,
+                      max = 100,
+                      value = 2
+                    ),
+                    br(),
+                    br(),
+                    dateRangeInput(
+                      'kanibalizm_daterange',
+                      label = 'Wybierz okres: RRRR-MM-DD od i do',
+                      start = ymd("2016-06-01"),
+                      end = Sys.Date()
+                    )
+        ),
+      box(
+        width = 8,
+        title = "Mapa otoczenia apteki",
+        leafletOutput("kanibalizm_mapa")
+      )),
+      box(
+        width = 12,
+        title = "Apteki z otoczenia",
+        dataTableOutput("kanibalizm_dt")
+      )
+    
+     
     ),
     tabItem(
       "ymplot",

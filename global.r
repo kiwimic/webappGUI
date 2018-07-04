@@ -5,14 +5,18 @@ library(dplyr)
 library(plotly)
 library(RSQLite)
 library(lubridate)
-library(rlang) ## rlang::sym
 library(data.table)
+library(rlang) ## rlang::sym
+library(tidyr)
+library(leaflet)
+
 
 myDB_YM <- dbConnect(RSQLite::SQLite(), "C:/Users/msiwik/Desktop/FOLDER R/Analiza_Prepeparatow/Dane/Consensus_YM.sqlite")
 myDB <- dbConnect(RSQLite::SQLite(), "C:/Users/msiwik/Desktop/FOLDER R/Analiza_Prepeparatow/Dane/Consensus.sqlite") 
 YM_ALL_WSK <- dbSendQuery(myDB_YM, "SELECT * FROM WSK_YM") %>% fetch() %>% mutate(YMD = ymd(paste0(YM, "-01")))
 BAZA_CKK <- dbSendQuery(myDB, "SELECT * FROM tab3") %>% fetch()
-
+Mam_GPS_temp <- readxl::read_excel("C:/Users/msiwik/Desktop/FOLDER R/Analiza_Prepeparatow/Mam_GPS_temp.xlsx")
+BAZA_CKT <- dbSendQuery(myDB, "SELECT * FROM tab2") %>% fetch
 ### Takie zapytanie to około 30 sekund na moim komputerze
 # Sys.time()
 # tbl(myDB, "tab1") %>%
@@ -41,6 +45,7 @@ BAZA_CKK <- dbSendQuery(myDB, "SELECT * FROM tab3") %>% fetch()
 #    collect() %>%
 #    mutate(YMD_HMS = as.POSIXct(DATA_ZAFAKTUROWANIA, origin = "1970-01-01 00:00:00 UTC"))-> test_123812
 
+Apteka_16571 <- read.csv2("C:\\Users\\msiwik\\Desktop\\FOLDER R\\Analiza_Prepeparatow\\Dane\\GPS\\16571.csv")
 
 YM_ALL_WSK_PSEUDO <- YM_ALL_WSK %>%
   filter(!is.na(WCSN_PSEUDO)) %>%
@@ -109,6 +114,31 @@ filter_col <- function(df, col_name_as_string, val){
 #              input_proc = 5,
 #              input_wart = 10
 #              ) -> test
+
+
+##Podstawowe statystyki########
+YM_ALL_WSK_grouped <- YM_ALL_WSK %>%
+  group_by(YMD) %>%
+  summarise(WCSN_ALL = sum(WCSN_ALL, na.rm = T),
+            WCSN_DEF = sum(WCSN_DEF, na.rm = T),
+            WCSN_PSEUDO = sum(WCSN_PSEUDO, na.rm = T),
+            WCSN_ALL_DIFF = WCSN_ALL - WCSN_DEF- WCSN_PSEUDO) %>%
+  gather(Kat, Wart, WCSN_DEF:WCSN_ALL_DIFF) %>%
+  group_by(YMD) %>%
+  mutate(PROC = Wart/sum(Wart),
+         PROC_label = percent(PROC))
+
+plot_ly(data =YM_ALL_WSK_grouped, 
+        x = ~YMD,
+        y = ~Wart,
+        color = ~Kat,
+        type = "bar",
+        text = ~PROC_label,
+        textposition = 'auto') %>%
+  layout(yaxis = list(title = 'Wartość w zł'), barmode = 'stack')
+
+
+
 ## Scatter plot plotly #####
 DaneDoScatter <- function(dane,
                           WSK, 
@@ -149,7 +179,7 @@ DaneDoScatter <- function(dane,
   # p4 <- input$Wart
 }
 
-
+## Wykres dla danych z ScatterPlolty####
 ScatterPlotly <- function(dane,
                           fragmentOpisu = "pseudoefedryny",
                           input_proc = 40,
@@ -189,7 +219,7 @@ plot_ly(
 ) %>%
   layout(
     dragmode = "select",
-    xaxis = list(title = "Wartość w zł", range = c(0, 2 * 1000 * 1000)),
+    xaxis = list(title = "Wartość w zł"),
     yaxis = list(
       title = "Wskaźnik %",
       range = c(0, 1.05),
@@ -210,6 +240,12 @@ plot_ly(
 #               Wart_COL = "WCSN_DEF",
 #               fragmentOpisu = "deficytów")
 # 
-
+KanibalizacjaRynku_dane <- function() {
+  
+}
+  
+KanibalizacjaRynku_mapka <- function() {
+  
+}
 
 
