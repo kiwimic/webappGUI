@@ -25,45 +25,52 @@ shinyServer(function(input, output, session) {
       WSK_COL = "WSK_PSEUDO"
     )
     
+    ScatterPlotly(dane = dataToPlot,
+                  input_proc = input$Proc_pseudo,
+                  input_wart = input$Wart_pseudo,
+                  Wart_COL = "WCSN_PSEUDO",
+                  WSK_COL = "WSK_PSEUDO",
+                  fragmentOpisu = "pseudoefedryny")
     
-    plot_ly(
-      dataToPlot,
-      x = ~ WCSN_PSEUDO,
-      y = ~ WSK_PSEUDO,
-      type = 'scatter',
-      mode = 'markers',
-      hoverinfo = 'text',
-      source = "pseudo_scatter",
-      text = ~ paste(
-        'CKK: ',
-        CKK,
-        '</br>',
-        '</br> Wartość sprzedaży pseudoefedryna w zł: ',
-        paste0(round(WCSN_PSEUDO / 1000, 1), "tys"),
-        '</br> Udział %: ',
-        percent(WSK_PSEUDO),
-        '</br> Płatnik: ',
-        PLATNIK,
-        '</br> Miasto: ',
-        MIEJSCOWOSC,
-        '</br> Ulica: ',
-        ULICA
-      )
-    ) %>%
-      layout(
-        dragmode = "select",
-        xaxis = list(title = "Wartość w zł", range = c(0, 2 * 1000 * 1000)),
-        yaxis = list(
-          title = "Wskaźnik %",
-          range = c(0, 1.05),
-          tickformat = "%"
-        ),
-        shapes = list(
-          hline(input$Proc / 100, color = "red"),
-          vline(input$Wart * 1000, color = "red")
-        )
-      ) %>%
-      config(displayModeBar = F)
+    
+    # plot_ly(
+    #   dataToPlot,
+    #   x = ~ WCSN_PSEUDO,
+    #   y = ~ WSK_PSEUDO,
+    #   type = 'scatter',
+    #   mode = 'markers',
+    #   hoverinfo = 'text',
+    #   source = "pseudo_scatter",
+    #   text = ~ paste(
+    #     'CKK: ',
+    #     CKK,
+    #     '</br>',
+    #     '</br> Wartość sprzedaży pseudoefedryna w zł: ',
+    #     paste0(round(WCSN_PSEUDO / 1000, 1), "tys"),
+    #     '</br> Udział %: ',
+    #     percent(WSK_PSEUDO),
+    #     '</br> Płatnik: ',
+    #     PLATNIK,
+    #     '</br> Miasto: ',
+    #     MIEJSCOWOSC,
+    #     '</br> Ulica: ',
+    #     ULICA
+    #   )
+    # ) %>%
+    #   layout(
+    #     dragmode = "select",
+    #     xaxis = list(title = "Wartość w zł", range = c(0, 2 * 1000 * 1000)),
+    #     yaxis = list(
+    #       title = "Wskaźnik %",
+    #       range = c(0, 1.05),
+    #       tickformat = "%"
+    #     ),
+    #     shapes = list(
+    #       hline(input$Proc / 100, color = "red"),
+    #       vline(input$Wart * 1000, color = "red")
+    #     )
+    #   ) %>%
+    #   config(displayModeBar = F)
     
   })
   ## 0.1.2 ####
@@ -138,6 +145,7 @@ shinyServer(function(input, output, session) {
         )
           dataToPlot %>%
           filter(LP %in% pseudo_d_dt$pointNumber)
+        #pseudo_d_dt
         }
   })
   
@@ -168,7 +176,8 @@ shinyServer(function(input, output, session) {
         summarise(WCSN_ALL_MINUS_PSEUDO = sum(WCSN_ALL_MINUS_PSEUDO, na.rm = T),
                   WCSN_PSEUDO = sum(WCSN_PSEUDO))
       
-      plot_ly(dataToPlot, x = ~YMD, y = ~WCSN_ALL_MINUS_PSEUDO, type = 'bar', name = 'Sprzedaż niepseudoefedryny') %>%
+      plot_ly(dataToPlot, x = ~YMD, y = ~WCSN_ALL_MINUS_PSEUDO,
+              type = 'bar', name = 'Sprzedaż niepseudoefedryny') %>%
         add_trace(y = ~WCSN_PSEUDO, name = 'Sprzedaż pseudoefedryny') %>%
         layout(yaxis = list(title = 'Wartość w zł'), barmode = 'stack') %>%
         config(displayModeBar = F)
@@ -189,44 +198,51 @@ shinyServer(function(input, output, session) {
     )
     
     
-    plot_ly(
-      dataToPlot,
-      x = ~ WCSN_DEF,
-      y = ~ WSK_DEF,
-      type = 'scatter',
-      mode = 'markers',
-      hoverinfo = 'text',
-      source = "def_scatter",
-      text = ~ paste(
-        'CKK: ',
-        CKK,
-        '</br>',
-        '</br> Wartość sprzedaży deficytów w zł: ',
-        paste0(round(WCSN_DEF / 1000, 1), "tys"),
-        '</br> Udział %: ',
-        percent(WSK_DEF),
-        '</br> Płatnik: ',
-        PLATNIK,
-        '</br> Miasto: ',
-        MIEJSCOWOSC,
-        '</br> Ulica: ',
-        ULICA
-      )
-    ) %>%
-      layout(
-        dragmode = "select",
-        xaxis = list(title = "Wartość w zł", range = c(0, 2 * 1000 * 1000)),
-        yaxis = list(
-          title = "Wskaźnik %",
-          range = c(0, 1.05),
-          tickformat = "%"
-        ),
-        shapes = list(
-          hline(input$Proc / 100, color = "red"),
-          vline(input$Wart * 1000, color = "red")
-        )
-      ) %>%
-      config(displayModeBar = F)
+    ScatterPlotly(dane = dataToPlot,
+                  input_proc = input$Proc_pseudo,
+                  input_wart = input$Wart_pseudo,
+                  Wart_COL = "WCSN_DEF",
+                  WSK_COL = "WSK_DEF",
+                  fragmentOpisu = "deficytów")
+    
+    # plot_ly(
+    #   dataToPlot,
+    #   x = ~ WCSN_DEF,
+    #   y = ~ WSK_DEF,
+    #   type = 'scatter',
+    #   mode = 'markers',
+    #   hoverinfo = 'text',
+    #   source = "def_scatter",
+    #   text = ~ paste(
+    #     'CKK: ',
+    #     CKK,
+    #     '</br>',
+    #     '</br> Wartość sprzedaży deficytów w zł: ',
+    #     paste0(round(WCSN_DEF / 1000, 1), "tys"),
+    #     '</br> Udział %: ',
+    #     percent(WSK_DEF),
+    #     '</br> Płatnik: ',
+    #     PLATNIK,
+    #     '</br> Miasto: ',
+    #     MIEJSCOWOSC,
+    #     '</br> Ulica: ',
+    #     ULICA
+    #   )
+    # ) %>%
+    #   layout(
+    #     dragmode = "select",
+    #     xaxis = list(title = "Wartość w zł", range = c(0, 2 * 1000 * 1000)),
+    #     yaxis = list(
+    #       title = "Wskaźnik %",
+    #       range = c(0, 1.05),
+    #       tickformat = "%"
+    #     ),
+    #     shapes = list(
+    #       hline(input$Proc / 100, color = "red"),
+    #       vline(input$Wart * 1000, color = "red")
+    #     )
+    #   ) %>%
+    #   config(displayModeBar = F)
     
   })
   
