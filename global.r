@@ -155,7 +155,8 @@ ScatterPlotly <- function(dane,
                           input_proc = 40,
                           input_wart = 50,
                           Wart_COL = "WCSN_PSEUDO",
-                          WSK_COL = "WSK_PSEUDO") {
+                          WSK_COL = "WSK_PSEUDO",
+                          source = "pseudo_scatter") {
   sym_Wart_COL <- rlang::sym(Wart_COL)
   #sym_Wart_COL <- enquo(sym_Wart_COL)
   sym_WSK_COL <- rlang::sym(WSK_COL)
@@ -169,7 +170,7 @@ plot_ly(
     type = 'scatter',
     mode = 'markers',
     hoverinfo = 'text',
-    source = "pseudo_scatter",
+    source = source,
     text = ~ paste(
       'CKK: ',
       CKK,

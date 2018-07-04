@@ -30,7 +30,8 @@ shinyServer(function(input, output, session) {
                   input_wart = input$Wart_pseudo,
                   Wart_COL = "WCSN_PSEUDO",
                   WSK_COL = "WSK_PSEUDO",
-                  fragmentOpisu = "pseudoefedryny")
+                  fragmentOpisu = "pseudoefedryny",
+                  source = "pseudo_scatter")
     
     
     # plot_ly(
@@ -203,7 +204,8 @@ shinyServer(function(input, output, session) {
                   input_wart = input$Wart_pseudo,
                   Wart_COL = "WCSN_DEF",
                   WSK_COL = "WSK_DEF",
-                  fragmentOpisu = "deficytów")
+                  fragmentOpisu = "deficytów",
+                  source = "def_scatter")
     
     # plot_ly(
     #   dataToPlot,
