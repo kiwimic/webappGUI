@@ -27,12 +27,38 @@ dashboardPage(
     menuItem("Przegląd refundowanych", tabName = "refundacja"),
     menuItem("Przegląd wybranych CKT", tabName = "ymplot"),
     menuItem("Kanibalizacja rynku", tabName = "kanibalizm"),
-    menuItem("Export danych do excel", tabName = "ymplot"),
+    menuItem("Export danych do excel", tabName = "export_excel"),
     menuItem("Generowanie raportów HTML", tabName = "ymplot")
   )),
   ## 0.1.3 Body #####
   dashboardBody(
-    tabItems(tabItem(
+    tabItems(
+      tabItem("export_excel",
+              box(width = 4,
+                  textInput("ckk_raport_download", h3("Wpisz CKK apteki"), 
+                            value = "16571"),
+                  dateRangeInput(
+                    'dateRange_excel',
+                    label = 'Wybierz okres: RRRR-MM-DD',
+                    start = ymd("2016-06-01"),
+                    end = Sys.Date()
+                  ),
+                  actionButton("goButton_download_excel", "Przygotuj raport!"),
+                  h3("Uwaga raport może generować się nawet do kilku minut!\n,
+                     Po przygotowaniu raportu pojawi się przycisk pobierz."),
+                  uiOutput("downloadData")
+                  ),
+              box(width = 6, 
+                  h1("Układ raportów:"),
+                  h4("1. Całe dane w danym zakresie dat w podziale na CKK, YM, CKT, WCSN, ILOSC"),
+                  h4("2. Tylko pseudoefedryna w danym zakresie dat w podziale na CKK, YM, CKT, WCSN, ILOSC"),
+                  h4("3. Tylko deficyty w danym zakresie dat w podziale na CKK, YM, CKT, WCSN, ILOSC"),
+                  h4("4. Tylko deficyty w czasie trwania listy w danym zakresie dat w podziale na CKK, YM, CKT, WCSN, ILOSC"),
+                  h4("5. Tylko refundacja dat w podziale na CKK, YM, CKT, WCSN, ILOSC"))
+              ),
+    
+            
+      tabItem(
       ## 0.1.3.1 Zawartość przegląd pseudoefedryny####
       "pseudoefedryna",
       fluidRow(
@@ -57,7 +83,8 @@ dashboardPage(
             label = 'Wybierz okres: RRRR-MM-DD',
             start = ymd("2016-06-01"),
             end = Sys.Date()
-          )
+          ),
+          actionButton("goButton_pseudo", "Filtruj!")
         ),
         box(
           width = 8,
@@ -97,7 +124,8 @@ dashboardPage(
             label = 'Wybierz okres: RRRR-MM-DD',
             start = ymd("2016-06-01"),
             end = Sys.Date()
-          )
+          ),
+          actionButton("goButton_ref", "Filtruj!")
         ),
         box(
           width = 8,
@@ -145,7 +173,8 @@ dashboardPage(
                       label = 'Wybierz okres: RRRR-MM-DD od i do',
                       start = ymd("2016-06-01"),
                       end = Sys.Date()
-                    )
+                    ),
+          actionButton("goButton_kanibalizm", "Filtruj!")
         ),
       box(
         width = 8,
@@ -201,7 +230,8 @@ dashboardPage(
             label = 'Wybierz okres: RRRR-MM-DD',
             start = ymd("2016-06-01"),
             end = Sys.Date()
-          )
+          ),
+          actionButton("goButton_def", "Filtruj!")
       ),
         box(
           width = 8,
