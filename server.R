@@ -18,7 +18,9 @@ shinyServer(function(input, output, session) {
   
   ## 0.1.1 Dane do scatter psedo jako reactive, by nie liczyć kilkukrotnie ####
   dataToPlot_pseudo <- reactive({
+    
     input$goButton_pseudo
+    
     dataToPlot <- isolate(DaneDoScatter(
       dane = YM_ALL_WSK,
       input_data_start = input$dateRange_pseudo[1],
@@ -27,6 +29,36 @@ shinyServer(function(input, output, session) {
       input_wart = input$Wart_pseudo,
       Wart_COL = "WCSN_PSEUDO",
       WSK_COL = "WSK_PSEUDO"
+    ))
+  })
+  
+  ## 0.1.2 Dane do scatter ref jako reactive, by nie liczyć kilkukrotnie ####
+  dataToPlot_ref <- reactive({
+    input$goButton_ref
+    
+    dataToPlot <- isolate(DaneDoScatter(
+      dane = YM_ALL_WSK,
+      input_data_start = input$dateRange_ref[1],
+      input_data_koniec = input$dateRange_ref[2],
+      input_proc = input$Proc_ref,
+      input_wart = input$Wart_ref,
+      Wart_COL = "WCSN_REF",
+      WSK_COL = "WSK_REF"
+    ))
+  })
+  ## 0.1.2 Dane do scatter def jako reactive, by nie liczyć kilkukrotnie ####
+  dataToPlot_def <- reactive({
+    
+    input$goButton_def
+    
+    dataToPlot <- isolate(DaneDoScatter(
+      dane = YM_ALL_WSK,
+      input_data_start = input$dateRange_ref[1],
+      input_data_koniec = input$dateRange_ref[2],
+      input_proc = input$Proc_ref,
+      input_wart = input$Wart_ref,
+      Wart_COL = "WCSN_DEF",
+      WSK_COL = "WSK_DEF"
     ))
   })
   
@@ -224,18 +256,18 @@ shinyServer(function(input, output, session) {
     input$goButton_def
     
     
-     dataToPlot <- isolate(DaneDoScatter(
-      dane = YM_ALL_WSK,
-      input_data_start = input$dateRange_def[1],
-      input_data_koniec = input$dateRange_def[2],
-      input_proc = input$Proc_def,
-      input_wart = input$Wart_def,
-      Wart_COL = "WCSN_DEF",
-      WSK_COL = "WSK_DEF"))
+     # dataToPlot <- isolate(DaneDoScatter(
+     #  dane = YM_ALL_WSK,
+     #  input_data_start = input$dateRange_def[1],
+     #  input_data_koniec = input$dateRange_def[2],
+     #  input_proc = input$Proc_def,
+     #  input_wart = input$Wart_def,
+     #  Wart_COL = "WCSN_DEF",
+     #  WSK_COL = "WSK_DEF"))
     
     
     ret <- isolate(
-      ScatterPlotly(dane = dataToPlot,
+      ScatterPlotly(dane = dataToPlot_def(),
                   input_proc = input$Proc_def,
                   input_wart = input$Wart_def,
                   Wart_COL = "WCSN_DEF",
@@ -294,16 +326,16 @@ shinyServer(function(input, output, session) {
       tibble(x = "empty")
     } else { 
       
-      dataToPlot <- DaneDoScatter(
-        dane = YM_ALL_WSK,
-        input_data_start = input$dateRange_def[1],
-        input_data_koniec = input$dateRange_def[2],
-        input_proc = input$Proc_def,
-        input_wart = input$Wart_def,
-        Wart_COL = "WCSN_DEF",
-        WSK_COL = "WSK_DEF"
-      )
-        dataToPlot %>%
+      # dataToPlot <- DaneDoScatter(
+      #   dane = YM_ALL_WSK,
+      #   input_data_start = input$dateRange_def[1],
+      #   input_data_koniec = input$dateRange_def[2],
+      #   input_proc = input$Proc_def,
+      #   input_wart = input$Wart_def,
+      #   Wart_COL = "WCSN_DEF",
+      #   WSK_COL = "WSK_DEF"
+      # )
+        dataToPlot_def() %>%
         filter(LP %in% def_d_dt$pointNumber)
     }
   })
@@ -321,16 +353,16 @@ shinyServer(function(input, output, session) {
       plot_ly(data = iris, x = ~Sepal.Length, y = ~Petal.Length)
     } else { 
       
-      dataToPlot_temp <- DaneDoScatter(
-        dane = YM_ALL_WSK,
-        input_data_start = input$dateRange_def[1],
-        input_data_koniec = input$dateRange_def[2],
-        input_proc = input$Proc_def,
-        input_wart = input$Wart_def,
-        Wart_COL = "WCSN_DEF",
-        WSK_COL = "WSK_DEF"
-      )
-      dataToPlot_temp <- dataToPlot_temp %>%
+      # dataToPlot_temp <- DaneDoScatter(
+      #   dane = YM_ALL_WSK,
+      #   input_data_start = input$dateRange_def[1],
+      #   input_data_koniec = input$dateRange_def[2],
+      #   input_proc = input$Proc_def,
+      #   input_wart = input$Wart_def,
+      #   Wart_COL = "WCSN_DEF",
+      #   WSK_COL = "WSK_DEF"
+      # )
+      dataToPlot_temp <- dataToPlot_def() %>%
         filter(LP %in% def_d_YM$pointNumber) %>%
         select(CKK) 
       
@@ -356,17 +388,17 @@ shinyServer(function(input, output, session) {
    
     input$goButton_ref
     
-     dataToPlot <- isolate(DaneDoScatter(
-      dane = YM_ALL_WSK,
-      input_data_start = input$dateRange_ref[1],
-      input_data_koniec = input$dateRange_ref[2],
-      input_proc = input$Proc_ref,
-      input_wart = input$Wart_ref,
-      Wart_COL = "WCSN_REF",
-      WSK_COL = "WSK_REF"
-    ))
+    #  dataToPlot <- isolate(DaneDoScatter(
+    #   dane = YM_ALL_WSK,
+    #   input_data_start = input$dateRange_ref[1],
+    #   input_data_koniec = input$dateRange_ref[2],
+    #   input_proc = input$Proc_ref,
+    #   input_wart = input$Wart_ref,
+    #   Wart_COL = "WCSN_REF",
+    #   WSK_COL = "WSK_REF"
+    # ))
     
-    ret <- isolate(ScatterPlotly(dane = dataToPlot,
+    ret <- isolate(ScatterPlotly(dane = dataToPlot_ref(),
                   input_proc = input$Proc_ref,
                   input_wart = input$Wart_ref,
                   Wart_COL = "WCSN_REF",
@@ -427,16 +459,16 @@ shinyServer(function(input, output, session) {
       tibble(x = "empty", y = "empty") 
     } else { 
       
-      dataToPlot <- DaneDoScatter(
-        dane = YM_ALL_WSK,
-        input_data_start = input$dateRange_ref[1],
-        input_data_koniec = input$dateRange_ref[2],
-        input_proc = input$Proc_ref,
-        input_wart = input$Wart_ref,
-        Wart_COL = "WCSN_REF",
-        WSK_COL = "WSK_REF"
-      )
-      dataToPlot %>%
+      # dataToPlot <- DaneDoScatter(
+      #   dane = YM_ALL_WSK,
+      #   input_data_start = input$dateRange_ref[1],
+      #   input_data_koniec = input$dateRange_ref[2],
+      #   input_proc = input$Proc_ref,
+      #   input_wart = input$Wart_ref,
+      #   Wart_COL = "WCSN_REF",
+      #   WSK_COL = "WSK_REF"
+      # )
+      dataToPlot_ref() %>%
         filter(LP %in% ref_d_dt$pointNumber)
       #pseudo_d_dt
     }
@@ -450,16 +482,16 @@ shinyServer(function(input, output, session) {
       plot_ly(data = iris, x = ~Sepal.Length, y = ~Petal.Length)
     } else { 
       
-      dataToPlot_temp <- DaneDoScatter(
-        dane = YM_ALL_WSK,
-        input_data_start = input$dateRange_ref[1],
-        input_data_koniec = input$dateRange_ref[2],
-        input_proc = input$Proc_ref,
-        input_wart = input$Wart_ref,
-        Wart_COL = "WCSN_REF",
-        WSK_COL = "WSK_REF"
-      )
-      dataToPlot_temp <- dataToPlot_temp %>%
+      # dataToPlot_temp <- DaneDoScatter(
+      #   dane = YM_ALL_WSK,
+      #   input_data_start = input$dateRange_ref[1],
+      #   input_data_koniec = input$dateRange_ref[2],
+      #   input_proc = input$Proc_ref,
+      #   input_wart = input$Wart_ref,
+      #   Wart_COL = "WCSN_REF",
+      #   WSK_COL = "WSK_REF"
+      # )
+      dataToPlot_temp <- dataToPlot_ref() %>%
         filter(LP %in% ref_d_YM$pointNumber) %>%
         select(CKK) 
       
