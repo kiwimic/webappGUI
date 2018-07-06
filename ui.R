@@ -84,7 +84,8 @@ dashboardPage(
             start = ymd("2016-06-01"),
             end = Sys.Date()
           ),
-          actionButton("goButton_pseudo", "Filtruj!")
+          actionButton("goButton_pseudo", "Filtruj!"),
+          downloadButton("download_pseudo_widok", "Pobierz widok")
         ),
         box(
           width = 8,
@@ -129,7 +130,7 @@ dashboardPage(
         ),
         box(
           width = 8,
-          title = "Apteki kupujące pseudoefedrynę",
+          title = "Apteki kupujące preparaty refundowane",
           plotlyOutput("ref_scatter_plot")
         ),
         box(width = 12,

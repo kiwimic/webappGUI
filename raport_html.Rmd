@@ -1,0 +1,42 @@
+---
+title: "Raport"
+author: "Michał Siwik"
+date: "6 lipca 2018"
+output: html_document
+params:
+  input_wart: 0
+  input_proc: 0
+  d1 : "2016-06-01"
+  d2 : "2018-05-31"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(data.table)
+source("C:/Users/msiwik/Desktop/FOLDER R/GUI_consensus/global.r", encoding = "UTF-8")
+```
+
+```{r}
+head(BAZA_CKT)
+```
+
+
+
+## LS
+```{r}
+ls()
+```
+
+
+## WD
+```{r}
+getwd()
+```
+
+
+## PARAMS
+```{r}
+params
+
+```
+

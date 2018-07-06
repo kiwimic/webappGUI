@@ -134,32 +134,46 @@ shinyServer(function(input, output, session) {
     
    YM_ALL_WSK_grouped <- YM_ALL_WSK %>%
       group_by(YMD) %>%
-      summarise(WCSN_ALL = sum(WCSN_ALL, na.rm = T),
-                WCSN_DEF = sum(WCSN_DEF, na.rm = T),
-                WCSN_PSEUDO = sum(WCSN_PSEUDO, na.rm = T),
-                WCSN_REF = sum(WCSN_REF, na.rm = T),
-                WCSN_ALL_DIFF = WCSN_ALL - WCSN_DEF- WCSN_PSEUDO - WCSN_REF) %>%
-      gather(Kat, Wart, WCSN_DEF:WCSN_ALL_DIFF) %>%
-      group_by(YMD) %>%
-      mutate(PROC = Wart/sum(Wart),
-             PROC_label = percent(PROC)) %>%
-      ungroup() %>%
-      mutate(Wart = round(Wart))
+      summarise(WCSN_ALL = sum(WCSN_ALL, na.rm = T))
+    
     
     plot_ly(data =YM_ALL_WSK_grouped, 
             x = ~YMD,
-            y = ~Wart,
-            color = ~Kat,
+            y = ~WCSN_ALL,
             type = "bar",
-            text = ~PROC_label,
+            text = ~paste0(round(WCSN_ALL/(1000*1000)), "mln zł."),
             textposition = 'auto') %>%
-      layout(yaxis = list(title = 'Wartość w zł'), barmode = 'stack')
+      layout(barmode = 'stack')
       
     
     
     
   })
   
+  # output$all_ym_boxplot_pseudo <- renderPlotly({
+  #   
+  #   YM_ALL_WSK %>%
+  #   mutate(WSK_PSEUDO = ifelse(is.na(WSK_PSEUDO), 0, WSK_PSEUDO)) %>%
+  #   mutate(WSK_PSEUDO = ifelse(WSK_PSEUDO > 1, 1, WSK_PSEUDO),
+  #          WSK_PSEUDO = ifelse(WSK_PSEUDO < 0, 0, WSK_PSEUDO)) -> dane
+  # 
+  #   lista <- vector("list", length = length(unique(dane$YM)))
+  #   k <- 1
+  #   for (i in unique(dane$YM)) {
+  #     temp_data <- dane %>%
+  #       filter(YM == i)    
+  #     
+  #     temp <- tibble(YM = i,
+  #                    values = seq(0, 1, 0.01), 
+  #                    quants = quantile(temp_data$WSK_PSEUDO, probs = seq(0, 1, 0.01)))
+  #     lista[[k]] <- temp 
+  #     k <- k+1
+  #   }
+  #   
+  #    plot_ly(y = ~WSK_PSEUDO, type = "histogram",  histnorm = "probability")
+  #   
+  # })
+  # 
   ## 0.1.3 ####
   output$pseudoPlotYM_CKK <- renderPlotly({
     
@@ -239,11 +253,10 @@ shinyServer(function(input, output, session) {
         mutate(WCSN_ALL_MINUS_PSEUDO = WCSN_ALL - WCSN_PSEUDO) %>%
         group_by(YMD) %>%
         summarise(WCSN_ALL_MINUS_PSEUDO = sum(WCSN_ALL_MINUS_PSEUDO, na.rm = T),
-                  WCSN_PSEUDO = sum(WCSN_PSEUDO, na.rm = T)) %>%
-        gather(Kat, Wart, WCSN_ALL_MINUS_PSEUDO:WCSN_PSEUDO)
+                  WCSN_PSEUDO = sum(WCSN_PSEUDO, na.rm = T))
       
-      plot_ly(dataToPlot, x = ~YMD, y = ~Wart, color = ~Kat,
-              type = 'bar') %>%
+      plot_ly(dataToPlot, x = ~YMD, y = ~WCSN_ALL_MINUS_PSEUDO, type = 'bar', name = 'Sprzedaż pozostała') %>%
+        add_trace(y = ~WCSN_PSEUDO, name = 'Sprzedaż pseudoefedryny') %>%
         layout(yaxis = list(title = 'Wartość w zł'), barmode = 'stack') %>%
         config(displayModeBar = F)
     }
@@ -368,12 +381,13 @@ shinyServer(function(input, output, session) {
       
       dataToPlot <- YM_ALL_WSK %>%
         filter(CKK %in% dataToPlot_temp$CKK) %>%
+        mutate(WCSN_DEF = ifelse(is.na(WCSN_DEF), 0, WCSN_DEF)) %>%
         mutate(WCSN_ALL_MINUS_DEF = WCSN_ALL - WCSN_DEF) %>%
         group_by(YMD) %>%
         summarise(WCSN_ALL_MINUS_DEF = sum(WCSN_ALL_MINUS_DEF, na.rm = T),
-                  WCSN_DEF = sum(WCSN_DEF))
+                  WCSN_DEF = sum(WCSN_DEF, na.rm = T))
       
-      plot_ly(dataToPlot, x = ~YMD, y = ~WCSN_ALL_MINUS_DEF, type = 'bar', name = 'Sprzedaż niedeficytow') %>%
+      plot_ly(dataToPlot, x = ~YMD, y = ~WCSN_ALL_MINUS_DEF, type = 'bar', name = 'Sprzedaż pozostała') %>%
         add_trace(y = ~WCSN_DEF, name = 'Sprzedaż deficytów') %>%
         layout(yaxis = list(title = 'Wartość w zł'), barmode = 'stack') %>%
         config(displayModeBar = F)
@@ -497,12 +511,13 @@ shinyServer(function(input, output, session) {
       
       dataToPlot <- YM_ALL_WSK %>%
         filter(CKK %in% dataToPlot_temp$CKK) %>%
+        mutate(WCSN_REF = ifelse(is.na(WCSN_REF), 0, WCSN_REF)) %>%
         mutate(WCSN_ALL_MINUS_REF = WCSN_ALL - WCSN_REF) %>%
         group_by(YMD) %>%
         summarise(WCSN_ALL_MINUS_REF = sum(WCSN_ALL_MINUS_REF, na.rm = T),
-                  WCSN_REF = sum(WCSN_REF))
+                  WCSN_REF = sum(WCSN_REF, na.rm = T))
       
-      plot_ly(dataToPlot, x = ~YMD, y = ~WCSN_ALL_MINUS_REF, type = 'bar', name = 'Sprzedaż nierefundowanych') %>%
+      plot_ly(dataToPlot, x = ~YMD, y = ~WCSN_ALL_MINUS_REF, type = 'bar', name = 'Sprzedaż pozostała') %>%
         add_trace(y = ~WCSN_REF, name = 'Sprzedaż refundowanych') %>%
         layout(yaxis = list(title = 'Wartość w zł'), barmode = 'stack') %>%
         config(displayModeBar = F)
@@ -574,48 +589,81 @@ shinyServer(function(input, output, session) {
  
  daneRaportExcel <- reactive({
      
-    input$goButton_download_excel
-    CKK_apteki <- isolate(as.numeric(input$ckk_raport_download))
-
-    DaneDuzaBaza_tab1 <- tbl(myDB, "tab1") %>%
-      filter(CKK == CKK_apteki) %>%
-      group_by(CKK, CKT, DATA_ZAFAKTUROWANIA) %>%
-      summarise(WCSN = sum(WCSN, na.rm = T),
-                WCSN_PO_RABATACH = sum(WCSN_PO_RABATACH, na.rm = T),
-                ILOSC = sum(ILOSC, na.rm = T),
-                LICZBA_WIERSZY = n()) %>%
-        collect() %>%
-        left_join(select(BAZA_CKT, ID, NAZWA_OFERTOWA, Opis_caly), by = c("CKT"="ID")) %>%
-        ungroup() %>%
-        mutate(DATA_ZAFAKTUROWANIA = as.POSIXct(DATA_ZAFAKTUROWANIA, origin = "1970-01-01 00:00:00 UTC"),
-               YM = str_sub(as.character(DATA_ZAFAKTUROWANIA),1, 7))
-      
-  
-    DanePSEDO <- DaneDuzaBaza_tab1 %>%
-      semi_join(BAZA_PSEUDO, by = c("CKT"="ID"))
-    
-    DaneDEF <- DaneDuzaBaza_tab1 %>%
-      inner_join(BAZA_DEF, by = c("CKT"="ID"))
-    
-    
-    DaneREF <- DaneDuzaBaza_tab1 %>%
-      inner_join(BAZA_REF, by = c("CKT"="ID")) %>%
-      mutate(START = as.POSIXct.Date(START, origin = "1970-01-01 00:00:00 UTC"),
-             KONIEC = as.POSIXct.Date(KONIEC, origin = "1970-01-01 00:00:00 UTC")) %>%
-      mutate(WCSN_REF = ifelse(DATA_ZAFAKTUROWANIA>= START & DATA_ZAFAKTUROWANIA <= KONIEC, WCSN, 0))
-
-    DaneDEF2 <- DaneDEF %>%
-      mutate(START = as.POSIXct.Date(START, origin = "1970-01-01 00:00:00 UTC"),
-             KONIEC = as.POSIXct.Date(KONIEC, origin = "1970-01-01 00:00:00 UTC")) %>%
-      mutate(WCSN_DEF = ifelse(DATA_ZAFAKTUROWANIA>= START & DATA_ZAFAKTUROWANIA <= KONIEC, WCSN, 0))
-    
-    ret <- list(Raport1 = DaneDuzaBaza_tab1,
-                Raport2 = DanePSEDO,
-                Raport3 = DaneDEF,
-                Raport4 = DaneDEF2,
-                Raport5 = DaneREF)
-    
-    return(ret)
+   input$goButton_download_excel
+   
+   ret1 <- isolate({
+     
+     d1 <- as.numeric(som(input$dateRange_excel[1])) * 86400 
+     d2 <- as.numeric(eom(input$dateRange_excel[2])) * 86400
+     
+     
+     d1 <- as.POSIXct(d1, origin = "1970-01-01 00:00:00 UTC")
+     d2 <- as.POSIXct(d2, origin = "1970-01-01 00:00:00 UTC")
+     
+     
+     hour(d1) <- 0
+     minute(d1) <- 0
+     second(d1) <- 0
+     
+     hour(d2) <- 23
+     minute(d2) <- 59
+     second(d2) <- 59
+     
+     d1 <- as.numeric(d1)
+     d2 <- as.numeric(d2)
+     
+     input$goButton_download_excel
+     CKK_apteki <- isolate(as.numeric(input$ckk_raport_download))
+     
+     DaneDuzaBaza_tab1 <- tbl(myDB, "tab1") %>%
+       filter(CKK == CKK_apteki) %>%
+       filter(DATA_ZAFAKTUROWANIA >= d1, DATA_ZAFAKTUROWANIA <= d2) %>%
+       group_by(CKK, CKT, DATA_ZAFAKTUROWANIA) %>%
+       summarise(WCSN = sum(WCSN, na.rm = T),
+                 WCSN_PO_RABATACH = sum(WCSN_PO_RABATACH, na.rm = T),
+                 ILOSC = sum(ILOSC, na.rm = T),
+                 LICZBA_WIERSZY = n()) %>%
+       collect() %>%
+       left_join(select(BAZA_CKT, ID, NAZWA_OFERTOWA, Opis_caly), by = c("CKT"="ID")) %>%
+       ungroup() %>%
+       mutate(DATA_ZAFAKTUROWANIA = as.POSIXct(DATA_ZAFAKTUROWANIA, origin = "1970-01-01 00:00:00 UTC"),
+              YM = str_sub(as.character(DATA_ZAFAKTUROWANIA),1, 7))
+     
+     
+     DanePSEDO <- DaneDuzaBaza_tab1 %>%
+       semi_join(BAZA_PSEUDO, by = c("CKT"="ID"))
+     
+     DaneDEF <- DaneDuzaBaza_tab1 %>%
+       inner_join(BAZA_DEF, by = c("CKT"="ID"))
+     
+     
+     DaneREF <- DaneDuzaBaza_tab1 %>%
+       inner_join(BAZA_REF, by = c("CKT"="ID")) %>%
+       mutate(START = as.POSIXct.Date(START, origin = "1970-01-01 00:00:00 UTC"),
+              KONIEC = as.POSIXct.Date(KONIEC, origin = "1970-01-01 00:00:00 UTC")) %>%
+       mutate(WCSN_REF = ifelse(DATA_ZAFAKTUROWANIA>= START & DATA_ZAFAKTUROWANIA <= KONIEC, WCSN, 0))
+     
+     DaneDEF2 <- DaneDEF %>%
+       mutate(START = as.POSIXct.Date(START, origin = "1970-01-01 00:00:00 UTC"),
+              KONIEC = as.POSIXct.Date(KONIEC, origin = "1970-01-01 00:00:00 UTC")) %>%
+       mutate(WCSN_DEF = ifelse(DATA_ZAFAKTUROWANIA>= START & DATA_ZAFAKTUROWANIA <= KONIEC, WCSN, 0))
+     
+     Legenda <- tibble()
+     Podsum <- tibble()
+     
+     ret <- list(Legenda = Legenda,
+                 Podsum = Podsum,
+                 Dane_zrodlowe = DaneDuzaBaza_tab1,
+                 Pseudoefedryna = DanePSEDO,
+                 Deficyty = DaneDEF,
+                 Deficyty_czas_lista = DaneDEF2,
+                 Refundacja = DaneREF)
+     
+     return(ret)
+     
+   })
+   
+   
    # for (i in 1:5) {
    #   Sys.sleep(1)
    # }
@@ -632,18 +680,44 @@ shinyServer(function(input, output, session) {
         
         CKK_apteki <- as.numeric(input$ckk_raport_download)
         
-        filename <-  paste0(CKK_apteki,"_",Sys.Date(), ".xlsx")
+        filename <-  paste0(CKK_apteki,"_",
+                            paste(stringr::str_extract_all(Sys.time(), pattern = "[0-9]", simplify = T), collapse = ""),
+                            ".xlsx")
         return(filename)
       },
       content = function(filename) {
         write_xlsx(daneRaportExcel(), path = filename)
       }
-      
     )  
   
-  # onStop(function() {
-  #   dbDisconnect(myDB)
-  #   dbDisconnect(myDB_YM)
-  # })
+  output$download_pseudo_widok <- downloadHandler(
+    
+    
+    
+    # For PDF output, change this to "report.pdf"
+    filename = "report.html",
+    content = function(file) {
+      # Copy the report file to a temporary directory before processing it, in
+      # case we don't have write permissions to the current working dir (which
+      # can happen when deployed).
+      tempReport <- file.path(tempdir(), "raport_html.Rmd")
+      file.copy("raport_html.Rmd", tempReport, overwrite = TRUE)
+      
+      # Set up parameters to pass to Rmd document
+       paramsALL <- list(input_wart = input$Wart_pseudo,
+                      input_proc = input$Proc_pseudo,
+                      d1 = input$dateRange_pseudo[1], 
+                      d2 = input$dateRange_pseudo[2])
+     
+      
+      # Knit the document, passing in the `params` list, and eval it in a
+      # child of the global environment (this isolates the code in the document
+      # from the code in this app).
+      rmarkdown::render(tempReport,
+                        output_file = file,
+                        params = paramsALL,
+                        envir = new.env(parent = globalenv()))
+      }
+     )
  
 })
