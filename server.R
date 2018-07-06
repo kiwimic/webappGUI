@@ -9,14 +9,17 @@ library(RSQLite)
 library(lubridate)
 library(data.table)
 library(leaflet)
+library(writexl)
 
 ## 0.1.0 Serwer ####
 shinyServer(function(input, output, session) {
    
   
-  ## 0.1.1 Scatter plot Wartość w zł vs Udział % wskaźnika psedoefedryny ####
-  output$pseudo_scatter_plot <- renderPlotly({
-    dataToPlot <- DaneDoScatter(
+  
+  ## 0.1.1 Dane do scatter psedo jako reactive, by nie liczyć kilkukrotnie ####
+  dataToPlot_pseudo <- reactive({
+    input$goButton_pseudo
+    dataToPlot <- isolate(DaneDoScatter(
       dane = YM_ALL_WSK,
       input_data_start = input$dateRange_pseudo[1],
       input_data_koniec = input$dateRange_pseudo[2],
@@ -24,15 +27,32 @@ shinyServer(function(input, output, session) {
       input_wart = input$Wart_pseudo,
       Wart_COL = "WCSN_PSEUDO",
       WSK_COL = "WSK_PSEUDO"
-    )
+    ))
+  })
+  
+  ## 0.1.1 Scatter plot Wartość w zł vs Udział % wskaźnika psedoefedryny ####
+  output$pseudo_scatter_plot <- renderPlotly({
     
-    ScatterPlotly(dane = dataToPlot,
+    input$goButton_pseudo
+    
+    # dataToPlot <- isolate(DaneDoScatter(
+    #   dane = YM_ALL_WSK,
+    #   input_data_start = input$dateRange_pseudo[1],
+    #   input_data_koniec = input$dateRange_pseudo[2],
+    #   input_proc = input$Proc_pseudo,
+    #   input_wart = input$Wart_pseudo,
+    #   Wart_COL = "WCSN_PSEUDO",
+    #   WSK_COL = "WSK_PSEUDO"
+    # ))
+    
+    ret <- isolate(ScatterPlotly(dane = dataToPlot_pseudo(),
                   input_proc = input$Proc_pseudo,
                   input_wart = input$Wart_pseudo,
                   Wart_COL = "WCSN_PSEUDO",
                   WSK_COL = "WSK_PSEUDO",
                   fragmentOpisu = "pseudoefedryny",
-                  source = "pseudo_scatter")
+                  source = "pseudo_scatter"))
+    return(ret)
     
     
     # plot_ly(
@@ -137,7 +157,6 @@ shinyServer(function(input, output, session) {
   
   })
   
-  ## 0.1.4 ####
 
   ## 0.1.5 ####
 
@@ -148,16 +167,16 @@ shinyServer(function(input, output, session) {
       tibble(x = "empty", y = "empty") 
       } else { 
        
-        dataToPlot <- DaneDoScatter(
-          dane = YM_ALL_WSK,
-          input_data_start = input$dateRange_pseudo[1],
-          input_data_koniec = input$dateRange_pseudo[2],
-          input_proc = input$Proc_pseudo,
-          input_wart = input$Wart_pseudo,
-          Wart_COL = "WCSN_PSEUDO",
-          WSK_COL = "WSK_PSEUDO"
-        )
-          dataToPlot %>%
+        # dataToPlot <- DaneDoScatter(
+        #   dane = YM_ALL_WSK,
+        #   input_data_start = input$dateRange_pseudo[1],
+        #   input_data_koniec = input$dateRange_pseudo[2],
+        #   input_proc = input$Proc_pseudo,
+        #   input_wart = input$Wart_pseudo,
+        #   Wart_COL = "WCSN_PSEUDO",
+        #   WSK_COL = "WSK_PSEUDO"
+        # )
+          dataToPlot_pseudo() %>%
           filter(LP %in% pseudo_d_dt$pointNumber)
         #pseudo_d_dt
         }
@@ -170,16 +189,16 @@ shinyServer(function(input, output, session) {
       plot_ly(data = iris, x = ~Sepal.Length, y = ~Petal.Length)
     } else { 
       
-      dataToPlot_temp <- DaneDoScatter(
-        dane = YM_ALL_WSK,
-        input_data_start = input$dateRange_pseudo[1],
-        input_data_koniec = input$dateRange_pseudo[2],
-        input_proc = input$Proc_pseudo,
-        input_wart = input$Wart_pseudo,
-        Wart_COL = "WCSN_PSEUDO",
-        WSK_COL = "WSK_PSEUDO"
-      )
-      dataToPlot_temp <- dataToPlot_temp %>%
+      # dataToPlot_temp <- DaneDoScatter(
+      #   dane = YM_ALL_WSK,
+      #   input_data_start = input$dateRange_pseudo[1],
+      #   input_data_koniec = input$dateRange_pseudo[2],
+      #   input_proc = input$Proc_pseudo,
+      #   input_wart = input$Wart_pseudo,
+      #   Wart_COL = "WCSN_PSEUDO",
+      #   WSK_COL = "WSK_PSEUDO"
+      # )
+      dataToPlot_temp <- dataToPlot_pseudo() %>%
         filter(LP %in% pseudo_d_ym$pointNumber) %>%
         select(CKK) 
       
@@ -188,11 +207,11 @@ shinyServer(function(input, output, session) {
         mutate(WCSN_ALL_MINUS_PSEUDO = WCSN_ALL - WCSN_PSEUDO) %>%
         group_by(YMD) %>%
         summarise(WCSN_ALL_MINUS_PSEUDO = sum(WCSN_ALL_MINUS_PSEUDO, na.rm = T),
-                  WCSN_PSEUDO = sum(WCSN_PSEUDO))
+                  WCSN_PSEUDO = sum(WCSN_PSEUDO, na.rm = T)) %>%
+        gather(Kat, Wart, WCSN_ALL_MINUS_PSEUDO:WCSN_PSEUDO)
       
-      plot_ly(dataToPlot, x = ~YMD, y = ~WCSN_ALL_MINUS_PSEUDO,
-              type = 'bar', name = 'Sprzedaż niepseudoefedryny') %>%
-        add_trace(y = ~WCSN_PSEUDO, name = 'Sprzedaż pseudoefedryny') %>%
+      plot_ly(dataToPlot, x = ~YMD, y = ~Wart, color = ~Kat,
+              type = 'bar') %>%
         layout(yaxis = list(title = 'Wartość w zł'), barmode = 'stack') %>%
         config(displayModeBar = F)
     }
@@ -201,24 +220,31 @@ shinyServer(function(input, output, session) {
   
   ## 0.1.8 Scatter plot Wartość w zl vs Udział % wskaźnika deficytów ####
   output$def_scatter_plot <- renderPlotly({
-    dataToPlot <- DaneDoScatter(
+    
+    input$goButton_def
+    
+    
+     dataToPlot <- isolate(DaneDoScatter(
       dane = YM_ALL_WSK,
       input_data_start = input$dateRange_def[1],
       input_data_koniec = input$dateRange_def[2],
       input_proc = input$Proc_def,
       input_wart = input$Wart_def,
       Wart_COL = "WCSN_DEF",
-      WSK_COL = "WSK_DEF"
-    )
+      WSK_COL = "WSK_DEF"))
     
     
-    ScatterPlotly(dane = dataToPlot,
-                  input_proc = input$Proc_pseudo,
-                  input_wart = input$Wart_pseudo,
+    ret <- isolate(
+      ScatterPlotly(dane = dataToPlot,
+                  input_proc = input$Proc_def,
+                  input_wart = input$Wart_def,
                   Wart_COL = "WCSN_DEF",
                   WSK_COL = "WSK_DEF",
                   fragmentOpisu = "deficytów",
                   source = "def_scatter")
+    )
+    
+    return(ret)
     
     # plot_ly(
     #   dataToPlot,
@@ -327,7 +353,10 @@ shinyServer(function(input, output, session) {
   
   ## 0.1.10 Scatter plot Wartość w zł vs Udział % wskaźnika ref ####
   output$ref_scatter_plot <- renderPlotly({
-    dataToPlot <- DaneDoScatter(
+   
+    input$goButton_ref
+    
+     dataToPlot <- isolate(DaneDoScatter(
       dane = YM_ALL_WSK,
       input_data_start = input$dateRange_ref[1],
       input_data_koniec = input$dateRange_ref[2],
@@ -335,15 +364,18 @@ shinyServer(function(input, output, session) {
       input_wart = input$Wart_ref,
       Wart_COL = "WCSN_REF",
       WSK_COL = "WSK_REF"
-    )
+    ))
     
-    ScatterPlotly(dane = dataToPlot,
+    ret <- isolate(ScatterPlotly(dane = dataToPlot,
                   input_proc = input$Proc_ref,
                   input_wart = input$Wart_ref,
                   Wart_COL = "WCSN_REF",
                   WSK_COL = "WSK_REF",
                   fragmentOpisu = "refundacji",
                   source = "ref_scatter")
+                  )
+    
+    return(ret)
     
     
     # plot_ly(
@@ -450,14 +482,15 @@ shinyServer(function(input, output, session) {
 ## 0.1.8 Kanibalizacja mapa#####  
  output$kanibalizm_mapa <-  renderLeaflet({
    
-   Apteka_dane <- read.csv2(paste0("C:\\Users\\msiwik\\Desktop\\FOLDER R\\Analiza_Prepeparatow\\Dane\\GPS\\",
-                                    input$kanibalizm_ckk, ".csv"))
+   input$goButton_kanibalizm
+   Apteka_dane <- isolate(read.csv2(paste0("C:\\Users\\msiwik\\Desktop\\FOLDER R\\Analiza_Prepeparatow\\Dane\\GPS\\",
+                                    input$kanibalizm_ckk, ".csv")))
    
-   AptekaCentrum <- as.numeric(input$kanibalizm_ckk)
-   centr_LNG <- Mam_GPS_temp$lng[Mam_GPS_temp$ID==AptekaCentrum]
-   centr_LAT <- Mam_GPS_temp$lat[Mam_GPS_temp$ID==AptekaCentrum]
+   AptekaCentrum <- isolate(as.numeric(input$kanibalizm_ckk))
+   centr_LNG <- isolate(Mam_GPS_temp$lng[Mam_GPS_temp$ID==AptekaCentrum])
+   centr_LAT <- isolate(Mam_GPS_temp$lat[Mam_GPS_temp$ID==AptekaCentrum])
    
-   Apteka_dane %>%
+   ret <- isolate(Apteka_dane %>%
      filter(Dist_in_meters <= input$kanibalizm_km * 1000) %>%
      left_join(select(Mam_GPS_temp, ID, lng, lat), by = c("ID_2"="ID")) %>%
    leaflet() %>%
@@ -465,7 +498,7 @@ shinyServer(function(input, output, session) {
      setView(lng = centr_LNG, lat = centr_LAT, zoom = 8) %>%
      addMarkers(lng =  ~lng,
                 lat = ~lat) %>%
-     addCircleMarkers(centr_LNG, centr_LAT)
+     addCircleMarkers(centr_LNG, centr_LAT))
    
    # ~paste0("CKK apteki: ", CKK,
    #         "<br>",
@@ -478,7 +511,7 @@ shinyServer(function(input, output, session) {
    #         "Wartość zakupu pseudoefedryny: ", paste0(round(PSEUDOEFEDRYNA_WCSN/1000), "tys. zł."),
    #         "<br>",
    #         "Za okres: ", "od 2018-01-01 do 2018-05-31")
-   
+   return(ret)
  })
  
  output$kanibalizm_dt <- renderDataTable({
@@ -506,5 +539,79 @@ shinyServer(function(input, output, session) {
     
    
  })
+ 
+ daneRaportExcel <- reactive({
+     
+    input$goButton_download_excel
+    CKK_apteki <- isolate(as.numeric(input$ckk_raport_download))
+
+    DaneDuzaBaza_tab1 <- tbl(myDB, "tab1") %>%
+      filter(CKK == CKK_apteki) %>%
+      group_by(CKK, CKT, DATA_ZAFAKTUROWANIA) %>%
+      summarise(WCSN = sum(WCSN, na.rm = T),
+                WCSN_PO_RABATACH = sum(WCSN_PO_RABATACH, na.rm = T),
+                ILOSC = sum(ILOSC, na.rm = T),
+                LICZBA_WIERSZY = n()) %>%
+        collect() %>%
+        left_join(select(BAZA_CKT, ID, NAZWA_OFERTOWA, Opis_caly), by = c("CKT"="ID")) %>%
+        ungroup() %>%
+        mutate(DATA_ZAFAKTUROWANIA = as.POSIXct(DATA_ZAFAKTUROWANIA, origin = "1970-01-01 00:00:00 UTC"),
+               YM = str_sub(as.character(DATA_ZAFAKTUROWANIA),1, 7))
+      
+  
+    DanePSEDO <- DaneDuzaBaza_tab1 %>%
+      semi_join(BAZA_PSEUDO, by = c("CKT"="ID"))
+    
+    DaneDEF <- DaneDuzaBaza_tab1 %>%
+      inner_join(BAZA_DEF, by = c("CKT"="ID"))
+    
+    
+    DaneREF <- DaneDuzaBaza_tab1 %>%
+      inner_join(BAZA_REF, by = c("CKT"="ID")) %>%
+      mutate(START = as.POSIXct.Date(START, origin = "1970-01-01 00:00:00 UTC"),
+             KONIEC = as.POSIXct.Date(KONIEC, origin = "1970-01-01 00:00:00 UTC")) %>%
+      mutate(WCSN_REF = ifelse(DATA_ZAFAKTUROWANIA>= START & DATA_ZAFAKTUROWANIA <= KONIEC, WCSN, 0))
+
+    DaneDEF2 <- DaneDEF %>%
+      mutate(START = as.POSIXct.Date(START, origin = "1970-01-01 00:00:00 UTC"),
+             KONIEC = as.POSIXct.Date(KONIEC, origin = "1970-01-01 00:00:00 UTC")) %>%
+      mutate(WCSN_DEF = ifelse(DATA_ZAFAKTUROWANIA>= START & DATA_ZAFAKTUROWANIA <= KONIEC, WCSN, 0))
+    
+    ret <- list(Raport1 = DaneDuzaBaza_tab1,
+                Raport2 = DanePSEDO,
+                Raport3 = DaneDEF,
+                Raport4 = DaneDEF2,
+                Raport5 = DaneREF)
+    
+    return(ret)
+   # for (i in 1:5) {
+   #   Sys.sleep(1)
+   # }
+   # return(mtcars)
+ })
+ 
+ output$downloadData <- renderUI({
+   req(daneRaportExcel())
+   downloadButton("raport_excel_apteka", label = 'Pobierz raport!')
+ })
+ 
+  output$raport_excel_apteka <- downloadHandler(
+      filename = function() {
+        
+        CKK_apteki <- as.numeric(input$ckk_raport_download)
+        
+        filename <-  paste0(CKK_apteki,"_",Sys.Date(), ".xlsx")
+        return(filename)
+      },
+      content = function(filename) {
+        write_xlsx(daneRaportExcel(), path = filename)
+      }
+      
+    )  
+  
+  # onStop(function() {
+  #   dbDisconnect(myDB)
+  #   dbDisconnect(myDB_YM)
+  # })
  
 })

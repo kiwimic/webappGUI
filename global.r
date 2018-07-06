@@ -9,7 +9,11 @@ library(data.table)
 library(rlang) ## rlang::sym
 library(tidyr)
 library(leaflet)
+library(writexl)
+library(stringr)
 
+
+### Dorobić funkcje do YM ####
 
 myDB_YM <- dbConnect(RSQLite::SQLite(), "C:/Users/msiwik/Desktop/FOLDER R/Analiza_Prepeparatow/Dane/Consensus_YM.sqlite")
 myDB <- dbConnect(RSQLite::SQLite(), "C:/Users/msiwik/Desktop/FOLDER R/Analiza_Prepeparatow/Dane/Consensus.sqlite") 
@@ -17,6 +21,9 @@ YM_ALL_WSK <- dbSendQuery(myDB_YM, "SELECT * FROM WSK_YM") %>% fetch() %>% mutat
 BAZA_CKK <- dbSendQuery(myDB, "SELECT * FROM tab3") %>% fetch()
 Mam_GPS_temp <- readxl::read_excel("C:/Users/msiwik/Desktop/FOLDER R/Analiza_Prepeparatow/Mam_GPS_temp.xlsx")
 BAZA_CKT <- dbSendQuery(myDB, "SELECT * FROM tab2") %>% fetch
+BAZA_PSEUDO <- dbSendQuery(myDB, "SELECT * FROM tab7_PSEUDOEFEDRYNA") %>% fetch
+BAZA_REF <- dbSendQuery(myDB, "SELECT * FROM tab5_REF") %>% fetch
+BAZA_DEF <- dbSendQuery(myDB, "SELECT * FROM tab6_DEF") %>% fetch
 ### Takie zapytanie to około 30 sekund na moim komputerze
 # Sys.time()
 # tbl(myDB, "tab1") %>%
@@ -224,11 +231,11 @@ plot_ly(
       title = "Wskaźnik %",
       range = c(0, 1.05),
       tickformat = "%"
-    ),
-    shapes = list(
-      hline(input_proc / 100, color = "red"),
-      vline(input_wart * 1000, color = "red")
-    )
+    )#,
+    #shapes = list(
+    #  hline(input_proc / 100, color = "red"),
+    #  vline(input_wart * 1000, color = "red")
+    #)
   ) %>%
   config(displayModeBar = F)
 }
@@ -246,6 +253,12 @@ KanibalizacjaRynku_dane <- function() {
   
 KanibalizacjaRynku_mapka <- function() {
   
+}
+
+ExportRaportExcelDlaApteki <- function() {
+  
+  
+  writexl::write_xlsx(mtcars, path = )
 }
 
 
