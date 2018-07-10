@@ -1,36 +1,81 @@
 ---
 title: "Raport"
-author: "Michał Siwik"
-date: "6 lipca 2018"
+author: "Consnensus"
+date:
 output: html_document
 params:
   input_wart: 0
   input_proc: 0
   d1 : "2016-06-01"
   d2 : "2018-05-31"
+  points : 0
 ---
+
+Data wygenerowania raportu: `r Sys.time()`
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(data.table)
+library(kableExtra)
 source("C:/Users/msiwik/Desktop/FOLDER R/GUI_consensus/global.r", encoding = "UTF-8")
 ```
 
-```{r}
-head(BAZA_CKT)
+
+### 1. Dane
+```{r, fig.width=8, echo = FALSE}
+
+ dataToPlot <- DaneDoScatter(
+      dane = YM_ALL_WSK,
+      input_data_start = params$d1,
+      input_data_koniec = params$d2,
+      input_proc = params$input_proc,
+      input_wart = params$input_wart,
+      Wart_COL = "WCSN_PSEUDO",
+      WSK_COL = "WSK_PSEUDO") %>%
+  filter(LP %in% params$points)
+
+ dataToPlot %>%
+   select(-LP) %>%
+   arrange(desc(WCSN_PSEUDO)) %>%
+   mutate(
+     WCSN_ALL = PLN(round(WCSN_ALL)),
+     WCSN_PSEUDO = PLN(round(WCSN_PSEUDO)),
+     WSK_PSEUDO = percent(WSK_PSEUDO)
+          ) %>%
+   kable() %>%
+   kable_styling()
+
 ```
 
 
 
-## LS
-```{r}
-ls()
+### 2. Wykres
+```{r, fig.width=8, echo = FALSE}
+
+ScatterPlotly(dane = dataToPlot,
+                  input_proc = params$input_proc,
+                  input_wart = params$input_war,
+                  Wart_COL = "WCSN_PSEUDO",
+                  WSK_COL = "WSK_PSEUDO",
+                  fragmentOpisu = "pseudoefedryny",
+                  source = NA)
+
 ```
 
 
-## WD
-```{r}
-getwd()
+## 3. YM Plot
+```{r, fig.width=8, echo = FALSE}
+
+
+  ym_select_plotly(dataToPlot = dataToPlot,
+                     source = "pseudo_scatter",
+                     points = params$points,
+                     Wart_COL = "WCSN_PSEUDO",
+                     name1 = "Sprzedaz pozostala",
+                     name2 = "Sprzedaz pseudoefedryny"
+                    )
+
+
 ```
 
 
