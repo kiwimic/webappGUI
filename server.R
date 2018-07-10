@@ -14,6 +14,13 @@ library(writexl)
 ## 0.1.0 Serwer ####
 shinyServer(function(input, output, session) {
    
+  updateSelectizeInput(session = session, 
+                       inputId = "ckk_raport_download",
+                       choices = c(Choose = '', unique(BAZA_CKK$ID)), server = TRUE)
+  
+  updateSelectizeInput(session = session, 
+                       inputId = "ckk_kanibalizm",
+                       choices = c(Choose = '', unique(BAZA_CKK$ID)), server = TRUE)
   
   
   ## 0.1.1 Dane do scatter psedo jako reactive, by nie liczyć kilkukrotnie ####
@@ -208,24 +215,33 @@ shinyServer(function(input, output, session) {
 
   ## 0.1.6 dt_pseudo_select####
   output$dt_pseudo_select <- renderDataTable({
-    pseudo_d_dt <- event_data("plotly_selected", source = "pseudo_scatter")
-    if (is.null(pseudo_d_dt)) {
-      tibble(x = "empty", y = "empty") 
-      } else { 
-       
-        # dataToPlot <- DaneDoScatter(
-        #   dane = YM_ALL_WSK,
-        #   input_data_start = input$dateRange_pseudo[1],
-        #   input_data_koniec = input$dateRange_pseudo[2],
-        #   input_proc = input$Proc_pseudo,
-        #   input_wart = input$Wart_pseudo,
-        #   Wart_COL = "WCSN_PSEUDO",
-        #   WSK_COL = "WSK_PSEUDO"
-        # )
-          dataToPlot_pseudo() %>%
-          filter(LP %in% pseudo_d_dt$pointNumber)
-        #pseudo_d_dt
-        }
+    
+    
+    data_table_plotly(dataToShow = dataToPlot_pseudo(),
+                                  source = "pseudo_scatter",
+                                  points = NA,
+                                  Wart_COL = "WCSN_PSEUDO",
+                                  WSK_COL = "WSK_PSEUDO"
+    )
+    
+    # pseudo_d_dt <- event_data("plotly_selected", source = "pseudo_scatter")
+    # if (is.null(pseudo_d_dt)) {
+    #   tibble(x = "empty", y = "empty") 
+    #   } else { 
+    #    
+    #     # dataToPlot <- DaneDoScatter(
+    #     #   dane = YM_ALL_WSK,
+    #     #   input_data_start = input$dateRange_pseudo[1],
+    #     #   input_data_koniec = input$dateRange_pseudo[2],
+    #     #   input_proc = input$Proc_pseudo,
+    #     #   input_wart = input$Wart_pseudo,
+    #     #   Wart_COL = "WCSN_PSEUDO",
+    #     #   WSK_COL = "WSK_PSEUDO"
+    #     # )
+    #       dataToPlot_pseudo() %>%
+    #       filter(LP %in% pseudo_d_dt$pointNumber)
+    #     #pseudo_d_dt
+    #     }
   })
   
   ## 0.1.7 ym_pseudo_plot_select ####
@@ -370,39 +386,48 @@ shinyServer(function(input, output, session) {
   
   ## 0.1.7 ym_def_plot_select ####
   output$ym_def_plot_select <- renderPlotly({
-    def_d_YM <- event_data("plotly_selected", source = "def_scatter")
-    if (is.null(def_d_YM)) {
-      plot_ly(data = iris, x = ~Sepal.Length, y = ~Petal.Length)
-    } else { 
-      
-      # dataToPlot_temp <- DaneDoScatter(
-      #   dane = YM_ALL_WSK,
-      #   input_data_start = input$dateRange_def[1],
-      #   input_data_koniec = input$dateRange_def[2],
-      #   input_proc = input$Proc_def,
-      #   input_wart = input$Wart_def,
-      #   Wart_COL = "WCSN_DEF",
-      #   WSK_COL = "WSK_DEF"
-      # )
-      dataToPlot_temp <- dataToPlot_def() %>%
-        filter(LP %in% def_d_YM$pointNumber) %>%
-        select(CKK) 
-      
-      dataToPlot <- YM_ALL_WSK %>%
-        filter(CKK %in% dataToPlot_temp$CKK) %>%
-        mutate(WCSN_DEF = ifelse(is.na(WCSN_DEF), 0, WCSN_DEF)) %>%
-        mutate(WCSN_ALL_MINUS_DEF = WCSN_ALL - WCSN_DEF) %>%
-        group_by(YMD) %>%
-        summarise(WCSN_ALL_MINUS_DEF = sum(WCSN_ALL_MINUS_DEF, na.rm = T),
-                  WCSN_DEF = sum(WCSN_DEF, na.rm = T))
-      
-      plot_ly(dataToPlot, x = ~YMD, y = ~WCSN_ALL_MINUS_DEF, type = 'bar', name = 'Sprzedaż pozostała') %>%
-        add_trace(y = ~WCSN_DEF, name = 'Sprzedaż deficytów') %>%
-        layout(yaxis = list(title = 'Wartość w zł'), barmode = 'stack') %>%
-        config(displayModeBar = F)
-      
-      
-    }
+    
+    ym_select_plotly(dataToPlot = dataToPlot_def(),
+                     source = "def_scatter",
+                     points = NA,
+                     Wart_COL = "WCSN_DEF",
+                     name1 = "Sprzedaż pozostała",
+                     name2 = "Sprzedaż deficytów"
+    )
+    
+    # def_d_YM <- event_data("plotly_selected", source = "def_scatter")
+    # if (is.null(def_d_YM)) {
+    #   plot_ly(data = iris, x = ~Sepal.Length, y = ~Petal.Length)
+    # } else { 
+    #   
+    #   # dataToPlot_temp <- DaneDoScatter(
+    #   #   dane = YM_ALL_WSK,
+    #   #   input_data_start = input$dateRange_def[1],
+    #   #   input_data_koniec = input$dateRange_def[2],
+    #   #   input_proc = input$Proc_def,
+    #   #   input_wart = input$Wart_def,
+    #   #   Wart_COL = "WCSN_DEF",
+    #   #   WSK_COL = "WSK_DEF"
+    #   # )
+    #   dataToPlot_temp <- dataToPlot_def() %>%
+    #     filter(LP %in% def_d_YM$pointNumber) %>%
+    #     select(CKK) 
+    #   
+    #   dataToPlot <- YM_ALL_WSK %>%
+    #     filter(CKK %in% dataToPlot_temp$CKK) %>%
+    #     mutate(WCSN_DEF = ifelse(is.na(WCSN_DEF), 0, WCSN_DEF)) %>%
+    #     mutate(WCSN_ALL_MINUS_DEF = WCSN_ALL - WCSN_DEF) %>%
+    #     group_by(YMD) %>%
+    #     summarise(WCSN_ALL_MINUS_DEF = sum(WCSN_ALL_MINUS_DEF, na.rm = T),
+    #               WCSN_DEF = sum(WCSN_DEF, na.rm = T))
+    #   
+    #   plot_ly(dataToPlot, x = ~YMD, y = ~WCSN_ALL_MINUS_DEF, type = 'bar', name = 'Sprzedaż pozostała') %>%
+    #     add_trace(y = ~WCSN_DEF, name = 'Sprzedaż deficytów') %>%
+    #     layout(yaxis = list(title = 'Wartość w zł'), barmode = 'stack') %>%
+    #     config(displayModeBar = F)
+    #   
+    #   
+    # }
   })
   
   
@@ -500,39 +525,47 @@ shinyServer(function(input, output, session) {
   
   ## 0.1.12 ym_ref_plot_select ####
   output$ym_ref_plot_select <- renderPlotly({
-    ref_d_YM <- event_data("plotly_selected", source = "ref_scatter")
-    if (is.null(ref_d_YM)) {
-      plot_ly(data = iris, x = ~Sepal.Length, y = ~Petal.Length)
-    } else { 
-      
-      # dataToPlot_temp <- DaneDoScatter(
-      #   dane = YM_ALL_WSK,
-      #   input_data_start = input$dateRange_ref[1],
-      #   input_data_koniec = input$dateRange_ref[2],
-      #   input_proc = input$Proc_ref,
-      #   input_wart = input$Wart_ref,
-      #   Wart_COL = "WCSN_REF",
-      #   WSK_COL = "WSK_REF"
-      # )
-      dataToPlot_temp <- dataToPlot_ref() %>%
-        filter(LP %in% ref_d_YM$pointNumber) %>%
-        select(CKK) 
-      
-      dataToPlot <- YM_ALL_WSK %>%
-        filter(CKK %in% dataToPlot_temp$CKK) %>%
-        mutate(WCSN_REF = ifelse(is.na(WCSN_REF), 0, WCSN_REF)) %>%
-        mutate(WCSN_ALL_MINUS_REF = WCSN_ALL - WCSN_REF) %>%
-        group_by(YMD) %>%
-        summarise(WCSN_ALL_MINUS_REF = sum(WCSN_ALL_MINUS_REF, na.rm = T),
-                  WCSN_REF = sum(WCSN_REF, na.rm = T))
-      
-      plot_ly(dataToPlot, x = ~YMD, y = ~WCSN_ALL_MINUS_REF, type = 'bar', name = 'Sprzedaż pozostała') %>%
-        add_trace(y = ~WCSN_REF, name = 'Sprzedaż refundowanych') %>%
-        layout(yaxis = list(title = 'Wartość w zł'), barmode = 'stack') %>%
-        config(displayModeBar = F)
-      
-      
-    }
+    
+    ym_select_plotly(dataToPlot = dataToPlot_ref(),
+                     source = "ref_scatter",
+                     points = NA,
+                     Wart_COL = "WCSN_REF",
+                     name1 = "Sprzedaż pozostała",
+                     name2 = "Sprzedaż refundacji"
+    )
+    
+    # ref_d_YM <- event_data("plotly_selected", source = "ref_scatter")
+    # if (is.null(ref_d_YM)) {
+    #   plot_ly(data = iris, x = ~Sepal.Length, y = ~Petal.Length)
+    # } else { 
+    #   
+    #   # dataToPlot_temp <- DaneDoScatter(
+    #   #   dane = YM_ALL_WSK,
+    #   #   input_data_start = input$dateRange_ref[1],
+    #   #   input_data_koniec = input$dateRange_ref[2],
+    #   #   input_proc = input$Proc_ref,
+    #   #   input_wart = input$Wart_ref,
+    #   #   Wart_COL = "WCSN_REF",
+    #   #   WSK_COL = "WSK_REF"
+    #   # )
+    #   dataToPlot_temp <- dataToPlot_ref() %>%
+    #     filter(LP %in% ref_d_YM$pointNumber) %>%
+    #     select(CKK) 
+    #   
+    #   dataToPlot <- YM_ALL_WSK %>%
+    #     filter(CKK %in% dataToPlot_temp$CKK) %>%
+    #     mutate(WCSN_REF = ifelse(is.na(WCSN_REF), 0, WCSN_REF)) %>%
+    #     mutate(WCSN_ALL_MINUS_REF = WCSN_ALL - WCSN_REF) %>%
+    #     group_by(YMD) %>%
+    #     summarise(WCSN_ALL_MINUS_REF = sum(WCSN_ALL_MINUS_REF, na.rm = T),
+    #               WCSN_REF = sum(WCSN_REF, na.rm = T))
+    #   
+    #   plot_ly(dataToPlot, x = ~YMD, y = ~WCSN_ALL_MINUS_REF, type = 'bar', name = 'Sprzedaż pozostała') %>%
+    #     add_trace(y = ~WCSN_REF, name = 'Sprzedaż refundowanych') %>%
+    #     layout(yaxis = list(title = 'Wartość w zł'), barmode = 'stack') %>%
+    #     config(displayModeBar = F)
+    #   
+    #}
   })
   
 ## 0.1.8 Kanibalizacja mapa#####  
@@ -540,9 +573,9 @@ shinyServer(function(input, output, session) {
    
    input$goButton_kanibalizm
    Apteka_dane <- isolate(read.csv2(paste0("C:\\Users\\msiwik\\Desktop\\FOLDER R\\Analiza_Prepeparatow\\Dane\\GPS\\",
-                                    input$kanibalizm_ckk, ".csv")))
+                                    input$ckk_kanibalizm, ".csv")))
    
-   AptekaCentrum <- isolate(as.numeric(input$kanibalizm_ckk))
+   AptekaCentrum <- isolate(as.numeric(input$ckk_kanibalizm))
    centr_LNG <- isolate(Mam_GPS_temp$lng[Mam_GPS_temp$ID==AptekaCentrum])
    centr_LAT <- isolate(Mam_GPS_temp$lat[Mam_GPS_temp$ID==AptekaCentrum])
    
@@ -573,7 +606,7 @@ shinyServer(function(input, output, session) {
  output$kanibalizm_dt <- renderDataTable({
    
    Apteka_dane <- read.csv2(paste0("C:\\Users\\msiwik\\Desktop\\FOLDER R\\Analiza_Prepeparatow\\Dane\\GPS\\",
-                                   input$kanibalizm_ckk, ".csv"))
+                                   input$ckk_raport_download, ".csv"))
    
    AptekaCentrum <- as.numeric(input$kanibalizm_ckk)
    
@@ -591,7 +624,7 @@ shinyServer(function(input, output, session) {
      summarise(WCSN_ALL = sum(WCSN_ALL, na.rm = T)) %>%
      arrange(desc(WCSN_ALL)) %>%
      mutate(Udzial_proc = percent(WCSN_ALL/sum(WCSN_ALL))) %>%
-     left_join(select(BAZA_CKK, ID, PLATNIK, NIP, MIEJSCOWOSC, ULICA, STATUS, RODZAJ_PODMIOTU), by = c("CKK"="ID"))
+     left_join(select(BAZA_CKK, ID, PLATNIK, NIP, MIEJSCOWOSC, ULICA, STATUS, Podiot), by = c("CKK"="ID"))
     
    
  })
@@ -699,20 +732,22 @@ shinyServer(function(input, output, session) {
       }
     )  
   
-  output$download_pseudo_widok <- downloadHandler(
+
+    ##Download_pseudo_widok ####
+    output$download_pseudo_widok <- downloadHandler(
     
     
     
     # For PDF output, change this to "report.pdf"
-    filename = paste0("Raport",
+    filename = paste0("Raport_pseudo_",
                       paste(stringr::str_extract_all(Sys.Date(), pattern = "[0-9]", simplify = T),
                             collapse = ""), ".html"),
     content = function(file) {
       # Copy the report file to a temporary directory before processing it, in
       # case we don't have write permissions to the current working dir (which
       # can happen when deployed).
-      tempReport <- file.path(tempdir(), "raport_html.Rmd")
-      file.copy("raport_html.Rmd", tempReport, overwrite = TRUE)
+      tempReport <- file.path(tempdir(), "raport_pseudo_html.Rmd")
+      file.copy("raport_pseudo_html.Rmd", tempReport, overwrite = TRUE)
       
       # Set up parameters to pass to Rmd document
        paramsALL <- list(input_wart = input$Wart_pseudo,
@@ -732,4 +767,74 @@ shinyServer(function(input, output, session) {
       }
      )
  
+
+##Download_def_widok ####
+output$download_def_widok <- downloadHandler(
+  
+  
+  
+  # For PDF output, change this to "report.pdf"
+  filename = paste0("Raport_def_",
+                    paste(stringr::str_extract_all(Sys.Date(), pattern = "[0-9]", simplify = T),
+                          collapse = ""), ".html"),
+  content = function(file) {
+    # Copy the report file to a temporary directory before processing it, in
+    # case we don't have write permissions to the current working dir (which
+    # can happen when deployed).
+    tempReport <- file.path(tempdir(), "raport_def_html.Rmd")
+    file.copy("raport_def_html.Rmd", tempReport, overwrite = TRUE)
+    
+    # Set up parameters to pass to Rmd document
+    paramsALL <- list(input_wart = input$Wart_def,
+                      input_proc = input$Proc_def,
+                      d1 = input$dateRange_def[1], 
+                      d2 = input$dateRange_def[2],
+                      points = event_data("plotly_selected", source = "def_scatter")$pointNumber)
+    
+    
+    # Knit the document, passing in the `params` list, and eval it in a
+    # child of the global environment (this isolates the code in the document
+    # from the code in this app).
+    rmarkdown::render(tempReport,
+                      output_file = file,
+                      params = paramsALL,
+                      envir = new.env(parent = globalenv()))
+  }
+)
+
+
+##Download_ref_widok ####
+output$download_ref_widok <- downloadHandler(
+
+
+
+  # For PDF output, change this to "report.pdf"
+  filename = paste0("Raport_ref_",
+                    paste(stringr::str_extract_all(Sys.Date(), pattern = "[0-9]", simplify = T),
+                          collapse = ""), ".html"),
+  content = function(file) {
+    # Copy the report file to a temporary directory before processing it, in
+    # case we don't have write permissions to the current working dir (which
+    # can happen when deployed).
+    tempReport <- file.path(tempdir(), "raport_ref_html.Rmd")
+    file.copy("raport_ref_html.Rmd", tempReport, overwrite = TRUE)
+
+    # Set up parameters to pass to Rmd document
+    paramsALL <- list(input_wart = input$Wart_ref,
+                      input_proc = input$Proc_ref,
+                      d1 = input$dateRange_ref[1],
+                      d2 = input$dateRange_ref[2],
+                      points = event_data("plotly_selected", source = "ref_scatter")$pointNumber)
+
+
+    # Knit the document, passing in the `params` list, and eval it in a
+    # child of the global environment (this isolates the code in the document
+    # from the code in this app).
+    rmarkdown::render(tempReport,
+                      output_file = file,
+                      params = paramsALL,
+                      envir = new.env(parent = globalenv()))
+  }
+)
+
 })

@@ -35,8 +35,10 @@ dashboardPage(
     tabItems(
       tabItem("export_excel",
               box(width = 4,
-                  textInput("ckk_raport_download", h3("Wpisz CKK apteki"), 
-                            value = "16571"),
+                  selectizeInput(
+                    inputId = 'ckk_raport_download', label = 'Wybierz/wpisz CKK apteki',
+                    choices = NULL,
+                    selected = 16571),
                   dateRangeInput(
                     'dateRange_excel',
                     label = 'Wybierz okres: RRRR-MM-DD',
@@ -126,7 +128,8 @@ dashboardPage(
             start = ymd("2016-06-01"),
             end = Sys.Date()
           ),
-          actionButton("goButton_ref", "Filtruj!")
+          actionButton("goButton_ref", "Filtruj!"),
+          downloadButton("download_ref_widok", "Pobierz widok")
         ),
         box(
           width = 8,
@@ -153,13 +156,10 @@ dashboardPage(
       "kanibalizm",
       fluidRow(
       box(width = 4,
-                    selectizeInput(
-                      'kanibalizm_ckk', label = "Wybierz CKK apteki",
-                      choices = as.numeric(gsub(list.files(path = "C:\\Users\\msiwik\\Desktop\\FOLDER R\\Analiza_Prepeparatow\\Dane\\GPS\\"), 
-                                     pattern = "\\.csv",
-                                     replacement = "")),
-                      options = NULL, selected = 16571
-                    ),
+          selectizeInput(
+            inputId = 'ckk_kanibalizm', label = 'Wybierz/wpisz CKK apteki',
+            choices = NULL,
+            selected = 16571),
                     sliderInput(
                       "kanibalizm_km",
                       "Wskaż apteki w odległości x km od wybranej apteki:",
@@ -232,7 +232,8 @@ dashboardPage(
             start = ymd("2016-06-01"),
             end = Sys.Date()
           ),
-          actionButton("goButton_def", "Filtruj!")
+          actionButton("goButton_def", "Filtruj!"),
+          downloadButton("download_def_widok", "Pobierz widok")
       ),
         box(
           width = 8,

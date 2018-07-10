@@ -281,6 +281,7 @@ ExportRaportExcelDlaApteki <- function() {
   writexl::write_xlsx(mtcars, path = )
 }
 
+## Wykres YM dla danych zaznaczonych z ScatterPlotly ####
 ym_select_plotly <- function(dataToPlot = dataTooPlot_pseudo(),
                              source = "pseudo_scatter",
                              points = NA,
@@ -329,4 +330,37 @@ ym_select_plotly <- function(dataToPlot = dataTooPlot_pseudo(),
 
 PLN <- dollar_format(suffix = "zł", prefix = "", big.mark = ",")
 
-
+## Datatable output dla danych zaznaczonych z ScatterPlotly ####
+data_table_plotly <- function(dataToShow = dataToPlot_pseudo(),
+                             source = "pseudo_scatter",
+                             points = NA,
+                             Wart_COL = "WCSN_PSEUDO",
+                             WSK_COL = "WSK_PSEUDO"
+                             ) {
+  
+  sym_Wart_col <- rlang::sym(Wart_COL)
+  sym_WSK_col <- rlang::sym(WSK_COL)
+  
+  if (sum(is.na(points))>0) {
+    points <- event_data("plotly_selected", source = source)
+    points <- points$pointNumber
+  }
+  
+  if (is.null(points)) {
+   p <- tibble(Zaznaczone = "Brak zaznaczonych punktów", Instrukcja = "Zaznacz punkty na wykresie powyżej.") 
+  } else { 
+    
+    dataToShow %>%
+      filter(LP %in% points) %>%
+      mutate(
+        WCSN_ALL = PLN(round(WCSN_ALL)),
+        (!!sym_Wart_col) := PLN(round((!!sym_Wart_col))),
+        (!!sym_WSK_col) := percent((!!sym_WSK_col))
+             ) %>%
+      select(PLATNIK, CKK, everything(), -LP) -> p
+    
+  
+  }
+  return(p)
+  
+}
