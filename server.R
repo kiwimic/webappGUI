@@ -359,23 +359,32 @@ shinyServer(function(input, output, session) {
   
   ## 0.1.7 dt_def_select ####
   output$dt_def_select <- renderDataTable({
-    def_d_dt <- event_data("plotly_selected", source = "def_scatter")
-    if (is.null(def_d_dt)) {
-      tibble(x = "empty")
-    } else { 
-      
-      # dataToPlot <- DaneDoScatter(
-      #   dane = YM_ALL_WSK,
-      #   input_data_start = input$dateRange_def[1],
-      #   input_data_koniec = input$dateRange_def[2],
-      #   input_proc = input$Proc_def,
-      #   input_wart = input$Wart_def,
-      #   Wart_COL = "WCSN_DEF",
-      #   WSK_COL = "WSK_DEF"
-      # )
-        dataToPlot_def() %>%
-        filter(LP %in% def_d_dt$pointNumber)
-    }
+    
+    data_table_plotly(dataToShow = dataToPlot_def(),
+                      source = "def_scatter",
+                      points = NA,
+                      Wart_COL = "WCSN_DEF",
+                      WSK_COL = "WSK_DEF"
+    )
+    
+    
+    # def_d_dt <- event_data("plotly_selected", source = "def_scatter")
+    # if (is.null(def_d_dt)) {
+    #   tibble(x = "empty")
+    # } else { 
+    #   
+    #   # dataToPlot <- DaneDoScatter(
+    #   #   dane = YM_ALL_WSK,
+    #   #   input_data_start = input$dateRange_def[1],
+    #   #   input_data_koniec = input$dateRange_def[2],
+    #   #   input_proc = input$Proc_def,
+    #   #   input_wart = input$Wart_def,
+    #   #   Wart_COL = "WCSN_DEF",
+    #   #   WSK_COL = "WSK_DEF"
+    #   # )
+    #     dataToPlot_def() %>%
+    #     filter(LP %in% def_d_dt$pointNumber)
+    # }
   })
   
   
@@ -502,24 +511,33 @@ shinyServer(function(input, output, session) {
   
   ## 0.1.11 dt_ref_select####
   output$dt_ref_select <- renderDataTable({
-    ref_d_dt <- event_data("plotly_selected", source = "ref_scatter")
-    if (is.null(ref_d_dt)) {
-      tibble(x = "empty", y = "empty") 
-    } else { 
-      
-      # dataToPlot <- DaneDoScatter(
-      #   dane = YM_ALL_WSK,
-      #   input_data_start = input$dateRange_ref[1],
-      #   input_data_koniec = input$dateRange_ref[2],
-      #   input_proc = input$Proc_ref,
-      #   input_wart = input$Wart_ref,
-      #   Wart_COL = "WCSN_REF",
-      #   WSK_COL = "WSK_REF"
-      # )
-      dataToPlot_ref() %>%
-        filter(LP %in% ref_d_dt$pointNumber)
-      #pseudo_d_dt
-    }
+    
+    
+    data_table_plotly(dataToShow = dataToPlot_ref(),
+                      source = "ref_scatter",
+                      points = NA,
+                      Wart_COL = "WCSN_REF",
+                      WSK_COL = "WSK_REF"
+    )
+    
+    # ref_d_dt <- event_data("plotly_selected", source = "ref_scatter")
+    # if (is.null(ref_d_dt)) {
+    #   tibble(x = "empty", y = "empty") 
+    # } else { 
+    #   
+    #   # dataToPlot <- DaneDoScatter(
+    #   #   dane = YM_ALL_WSK,
+    #   #   input_data_start = input$dateRange_ref[1],
+    #   #   input_data_koniec = input$dateRange_ref[2],
+    #   #   input_proc = input$Proc_ref,
+    #   #   input_wart = input$Wart_ref,
+    #   #   Wart_COL = "WCSN_REF",
+    #   #   WSK_COL = "WSK_REF"
+    #   # )
+    #   dataToPlot_ref() %>%
+    #     filter(LP %in% ref_d_dt$pointNumber)
+    #   #pseudo_d_dt
+    # }
   })
   
   
