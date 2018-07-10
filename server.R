@@ -53,10 +53,10 @@ shinyServer(function(input, output, session) {
     
     dataToPlot <- isolate(DaneDoScatter(
       dane = YM_ALL_WSK,
-      input_data_start = input$dateRange_ref[1],
-      input_data_koniec = input$dateRange_ref[2],
-      input_proc = input$Proc_ref,
-      input_wart = input$Wart_ref,
+      input_data_start = input$dateRange_def[1],
+      input_data_koniec = input$dateRange_def[2],
+      input_proc = input$Proc_def,
+      input_wart = input$Wart_def,
       Wart_COL = "WCSN_DEF",
       WSK_COL = "WSK_DEF"
     ))
@@ -230,36 +230,45 @@ shinyServer(function(input, output, session) {
   
   ## 0.1.7 ym_pseudo_plot_select ####
   output$ym_pseudo_plot_select <- renderPlotly({
-    pseudo_d_ym <- event_data("plotly_selected", source = "pseudo_scatter")
-    if (is.null(pseudo_d_ym)) {
-      plot_ly(data = iris, x = ~Sepal.Length, y = ~Petal.Length)
-    } else { 
-      
-      # dataToPlot_temp <- DaneDoScatter(
-      #   dane = YM_ALL_WSK,
-      #   input_data_start = input$dateRange_pseudo[1],
-      #   input_data_koniec = input$dateRange_pseudo[2],
-      #   input_proc = input$Proc_pseudo,
-      #   input_wart = input$Wart_pseudo,
-      #   Wart_COL = "WCSN_PSEUDO",
-      #   WSK_COL = "WSK_PSEUDO"
-      # )
-      dataToPlot_temp <- dataToPlot_pseudo() %>%
-        filter(LP %in% pseudo_d_ym$pointNumber) %>%
-        select(CKK) 
-      
-      dataToPlot <- YM_ALL_WSK %>%
-        filter(CKK %in% dataToPlot_temp$CKK) %>%
-        mutate(WCSN_ALL_MINUS_PSEUDO = WCSN_ALL - WCSN_PSEUDO) %>%
-        group_by(YMD) %>%
-        summarise(WCSN_ALL_MINUS_PSEUDO = sum(WCSN_ALL_MINUS_PSEUDO, na.rm = T),
-                  WCSN_PSEUDO = sum(WCSN_PSEUDO, na.rm = T))
-      
-      plot_ly(dataToPlot, x = ~YMD, y = ~WCSN_ALL_MINUS_PSEUDO, type = 'bar', name = 'Sprzedaż pozostała') %>%
-        add_trace(y = ~WCSN_PSEUDO, name = 'Sprzedaż pseudoefedryny') %>%
-        layout(yaxis = list(title = 'Wartość w zł'), barmode = 'stack') %>%
-        config(displayModeBar = F)
-    }
+    
+    ym_select_plotly(dataToPlot = dataToPlot_pseudo(),
+                     source = "pseudo_scatter",
+                     points = NA,
+                     Wart_COL = "WCSN_PSEUDO",
+                     name1 = "Sprzedaż pozostała",
+                     name2 = "Sprzedaż pseudoefedryny"
+                    )
+    
+    # pseudo_d_ym <- event_data("plotly_selected", source = "pseudo_scatter")
+    # if (is.null(pseudo_d_ym)) {
+    #   plot_ly(data = iris, x = ~Sepal.Length, y = ~Petal.Length)
+    # } else { 
+    #   
+    #   # dataToPlot_temp <- DaneDoScatter(
+    #   #   dane = YM_ALL_WSK,
+    #   #   input_data_start = input$dateRange_pseudo[1],
+    #   #   input_data_koniec = input$dateRange_pseudo[2],
+    #   #   input_proc = input$Proc_pseudo,
+    #   #   input_wart = input$Wart_pseudo,
+    #   #   Wart_COL = "WCSN_PSEUDO",
+    #   #   WSK_COL = "WSK_PSEUDO"
+    #   # )
+    #   dataToPlot_temp <- dataToPlot_pseudo() %>%
+    #     filter(LP %in% pseudo_d_ym$pointNumber) %>%
+    #     select(CKK) 
+    #   
+    #   dataToPlot <- YM_ALL_WSK %>%
+    #     filter(CKK %in% dataToPlot_temp$CKK) %>%
+    #     mutate(WCSN_ALL_MINUS_PSEUDO = WCSN_ALL - WCSN_PSEUDO) %>%
+    #     group_by(YMD) %>%
+    #     summarise(WCSN_ALL_MINUS_PSEUDO = sum(WCSN_ALL_MINUS_PSEUDO, na.rm = T),
+    #               WCSN_PSEUDO = sum(WCSN_PSEUDO, na.rm = T))
+    #   
+    #   plot_ly(dataToPlot, x = ~YMD, y = ~WCSN_ALL_MINUS_PSEUDO, type = 'bar', name = 'Sprzedaż pozostała') %>%
+    #     add_trace(y = ~WCSN_PSEUDO, name = 'Sprzedaż pseudoefedryny') %>%
+    #     layout(yaxis = list(title = 'Wartość w zł'), barmode = 'stack') %>%
+    #     config(displayModeBar = F)
+    # }
   })
   
   
@@ -695,7 +704,9 @@ shinyServer(function(input, output, session) {
     
     
     # For PDF output, change this to "report.pdf"
-    filename = "report.html",
+    filename = paste0("Raport",
+                      paste(stringr::str_extract_all(Sys.Date(), pattern = "[0-9]", simplify = T),
+                            collapse = ""), ".html"),
     content = function(file) {
       # Copy the report file to a temporary directory before processing it, in
       # case we don't have write permissions to the current working dir (which
@@ -707,7 +718,8 @@ shinyServer(function(input, output, session) {
        paramsALL <- list(input_wart = input$Wart_pseudo,
                       input_proc = input$Proc_pseudo,
                       d1 = input$dateRange_pseudo[1], 
-                      d2 = input$dateRange_pseudo[2])
+                      d2 = input$dateRange_pseudo[2],
+                      points = event_data("plotly_selected", source = "pseudo_scatter")$pointNumber)
      
       
       # Knit the document, passing in the `params` list, and eval it in a

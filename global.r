@@ -18,12 +18,18 @@ library(stringr)
 myDB_YM <- dbConnect(RSQLite::SQLite(), "C:/Users/msiwik/Desktop/FOLDER R/Analiza_Prepeparatow/Dane/Consensus_YM.sqlite")
 myDB <- dbConnect(RSQLite::SQLite(), "C:/Users/msiwik/Desktop/FOLDER R/Analiza_Prepeparatow/Dane/Consensus.sqlite") 
 YM_ALL_WSK <- dbSendQuery(myDB_YM, "SELECT * FROM WSK_YM") %>% fetch() %>% mutate(YMD = ymd(paste0(YM, "-01")))
+RodzajPodmiotu <- readxl::read_excel("C:/Users/msiwik/Desktop/FOLDER R/Analiza_Prepeparatow/Dane/RodzajPodmiotuPGF.xlsx")
+
 BAZA_CKK <- dbSendQuery(myDB, "SELECT * FROM tab3") %>% fetch()
+BAZA_CKK %>%
+  left_join(RodzajPodmiotu, by = c("RODZAJ_PODMIOTU"="ID")) %>%
+  select(-RODZAJ_PODMIOTU) -> BAZA_CKK
 Mam_GPS_temp <- readxl::read_excel("C:/Users/msiwik/Desktop/FOLDER R/Analiza_Prepeparatow/Mam_GPS_temp.xlsx")
 BAZA_CKT <- dbSendQuery(myDB, "SELECT * FROM tab2") %>% fetch
 BAZA_PSEUDO <- dbSendQuery(myDB, "SELECT * FROM tab7_PSEUDOEFEDRYNA") %>% fetch
 BAZA_REF <- dbSendQuery(myDB, "SELECT * FROM tab5_REF") %>% fetch
 BAZA_DEF <- dbSendQuery(myDB, "SELECT * FROM tab6_DEF") %>% fetch
+
 ### Takie zapytanie to około 30 sekund na moim komputerze
 # Sys.time()
 # tbl(myDB, "tab1") %>%
@@ -51,6 +57,18 @@ BAZA_DEF <- dbSendQuery(myDB, "SELECT * FROM tab6_DEF") %>% fetch
 #    summarise(WCSN = sum(WCSN, na.rm = T)) %>%
 #    collect() %>%
 #    mutate(YMD_HMS = as.POSIXct(DATA_ZAFAKTUROWANIA, origin = "1970-01-01 00:00:00 UTC"))-> test_123812
+
+## Start of month fun####
+som <- function(x) {
+  x <- lubridate::ymd(x)
+  as.Date(format(x, "%Y-%m-01"))
+}
+
+## end of month fun#####
+eom <- function(x) {
+  som(som(x) + 35) - 1
+}
+
 
 Apteka_16571 <- read.csv2("C:\\Users\\msiwik\\Desktop\\FOLDER R\\Analiza_Prepeparatow\\Dane\\GPS\\16571.csv")
 
@@ -81,6 +99,8 @@ CKKdoWyboru <<- YM_ALL_WSK_PSEUDO %>%
   arrange(desc(WCSN_PSEUDO)) %>%
   filter(WCSN_PSEUDO > 20000) %>%
   slice(1:50)
+
+
 
 ## Rysowanie poziomych lini na wykresie plotly ####
 vline <- function(x = 0, color = "red") {
@@ -260,5 +280,53 @@ ExportRaportExcelDlaApteki <- function() {
   
   writexl::write_xlsx(mtcars, path = )
 }
+
+ym_select_plotly <- function(dataToPlot = dataTooPlot_pseudo(),
+                             source = "pseudo_scatter",
+                             points = NA,
+                             Wart_COL = "WCSN_PSEUDO",
+                             name1 = "Sprzedaż pozostała",
+                             name2 = "Sprzedaż pseudoefedryny") {
+ 
+   sym_Wart_col <- rlang::sym(Wart_COL)
+   
+ if (sum(is.na(points))>0) {
+   points <- event_data("plotly_selected", source = source)
+   points <- points$pointNumber
+ }
+   
+   
+  if (is.null(points)) {
+   p <- plot_ly(data = iris, x = ~Sepal.Length, y = ~Petal.Length)
+  } else { 
+    
+  
+  dataToPlot_temp <- dataToPlot %>%
+    filter(LP %in% points) %>%
+    select(CKK) 
+  
+  dataToPlot <- YM_ALL_WSK %>%
+    filter(CKK %in% dataToPlot_temp$CKK) %>%
+    mutate(WCSN_ALL_DIFF = WCSN_ALL - (!!sym_Wart_col)) %>%
+    group_by(YMD) %>%
+    summarise(WCSN_ALL_DIFF = sum(WCSN_ALL_DIFF, na.rm = T),
+              (!!sym_Wart_col) := sum((!!sym_Wart_col), na.rm = T))
+  
+  p <- plot_ly(
+      dataToPlot,
+      x = ~ YMD,
+      y = ~ WCSN_ALL_DIFF,
+      type = 'bar',
+      name = name1
+    ) %>%
+    add_trace(y = ~dataToPlot[[Wart_COL]], name = name2) %>%
+    layout(yaxis = list(title = 'Wartość w zł'), barmode = 'stack') %>%
+    config(displayModeBar = F)
+  }
+  return(p)
+  
+}
+
+PLN <- dollar_format(suffix = "zł", prefix = "", big.mark = ",")
 
 
