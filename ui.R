@@ -25,7 +25,7 @@ dashboardPage(
     menuItem("Przegląd pseudoefedryny", tabName = "pseudoefedryna"),
     menuItem("Przeglad deficytów", tabName = "deficyty"),
     menuItem("Przegląd refundowanych", tabName = "refundacja"),
-    menuItem("Przegląd wybranych CKT", tabName = "ymplot"),
+    menuItem("Przegląd wybranych CKT", tabName = "custom_ckk"),
     menuItem("Kanibalizacja rynku", tabName = "kanibalizm"),
     menuItem("Export danych do excel", tabName = "export_excel"),
     menuItem("Generowanie raportów HTML", tabName = "ymplot")
@@ -145,11 +145,65 @@ dashboardPage(
       plotlyOutput("ym_ref_plot_select")
     ),
     tabItem(
+      ## 0.1.3.1 Zawartość przegląd pseudoefedryny####
+      "custom_ckk",
+      fluidRow(
+        box(
+          width = 4,
+          sliderInput(
+            "Proc_custom",
+            "Wskaźnik udziału wybranych preparatów w zakupach:",
+            min = 0,
+            max = 100,
+            value = 50
+          ),
+          sliderInput(
+            "Wart_custom",
+            "Wartość wybranych preparatów w tys zł:",
+            min = 1,
+            max = 1000,
+            value = 50
+          ),
+          dateRangeInput(
+            'dateRange_custom',
+            label = 'Wybierz okres: RRRR-MM-DD',
+            start = ymd("2016-06-01"),
+            end = Sys.Date()
+          ),
+          actionButton("goButton_custom", "Filtruj!"),
+          downloadButton("download_custom_widok", "Pobierz widok")
+        ),
+        box(
+          width = 8,
+          title = "Apteki kupujące preparaty refundowane",
+          plotlyOutput("custom_scatter_plot")
+        ),
+        box(width = 12,
+            title = "Ramka danych z zaznaczenia"),
+        dataTableOutput("dt_custom_select")
+      ),
+      box(width = 12,
+          title = "Wykres YM z zaznaczenia"),
+      plotlyOutput("ym_custom_plot_select")
+    ),
+    tabItem(
       "podst_stats",
       box(
         width = 12,
         title = "Rozkład miesięczny sprzedaży PGF SA",
         plotlyOutput("all_ym_bar")
+      ),
+      box(
+        width = 12,
+        title = "Podstawowe statystyki w okresie - Tabela:",
+        dateRangeInput(
+          'dateRange_stats',
+          label = 'Wybierz okres: RRRR-MM-DD',
+          start = ymd("2016-06-01"),
+          end = Sys.Date()
+        ),
+        actionButton("goButton_stats", "Filtruj!"),
+        dataTableOutput("dt_stats")
       )
     ), ##Dopracować ta liste :)####
     tabItem(
@@ -160,6 +214,8 @@ dashboardPage(
             inputId = 'ckk_kanibalizm', label = 'Wybierz/wpisz CKK apteki',
             choices = NULL,
             selected = 16571),
+            #Do debugowania
+            #textOutput("selected_var"),
                     sliderInput(
                       "kanibalizm_km",
                       "Wskaż apteki w odległości x km od wybranej apteki:",
