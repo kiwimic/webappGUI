@@ -24,11 +24,49 @@ shinyServer(function(input, output, session) {
   updateSelectizeInput(
     session = session,
     inputId = "ckk_kanibalizm",
-    choices = c(Choose = '', unique(BAZA_CKK$ID)),
+    choices = c(Choose = '', unique(Mam_GPS_temp$ID)),
     server = TRUE
   )
   
+
+  dataToStats <- reactive({
+    input$goButton_stats
+    
+    ret <- isolate(
+      data_table_stats(dataToShow = YM_ALL_WSK,
+                       input_data_start = input$dateRange_stats[1],
+                       input_data_koniec = input$dateRange_stats[2])
+    )
+    
+    return(ret)
+  })
   
+  
+   output$dt_stats <- renderDataTable({
+    
+       dataToStats()
+      
+   })
+   
+   ## 0.1.1 Dane do scatter psedo jako reactive, by nie liczyć kilkukrotnie ####
+   dataToPlot_custom<- reactive({
+     input$goButton_custom
+     
+     dataToPlot <- isolate(
+       DaneDoScatter(
+         dane = YM_ALL_WSK,
+         input_data_start = input$dateRange_pseudo[1],
+         input_data_koniec = input$dateRange_pseudo[2],
+         input_proc = input$Proc_pseudo,
+         input_wart = input$Wart_pseudo,
+         Wart_COL = "WCSN_PSEUDO",
+         WSK_COL = "WSK_PSEUDO"
+       )
+     )
+   })
+   
+   
+    
   ## 0.1.1 Dane do scatter psedo jako reactive, by nie liczyć kilkukrotnie ####
   dataToPlot_pseudo <- reactive({
     input$goButton_pseudo
@@ -114,11 +152,19 @@ shinyServer(function(input, output, session) {
     ) %>%
       layout(barmode = 'stack')
     
-    
-    
-    
+   
   })
   
+  ## 0.1.3 Podstawowe statsy DATATABLE####
+  # output$dt_stats <- renderDataTable({
+  #   data_table_stats(
+  #     dataToShow = dataToStats(),
+  #     input_data_start = input$dateRange_stats[1],
+  #     input_data_koniec = input$dateRange_stats[2]
+  #     )
+  #   
+  # })
+  # 
   ## 0.1.3 ####
   output$pseudoPlotYM_CKK <- renderPlotly({
     if (length(input$in6) > 10) {
@@ -293,28 +339,56 @@ shinyServer(function(input, output, session) {
     
   })
   
+  ##CKK do kanibalizacji####
+  Kanibalizacja_CKK <- reactive({
+    
+    input$goButton_kanibalizm
+    
+    CKK <- isolate(ifelse(
+      is.na(as.numeric(input$ckk_kanibalizm)),
+      16571,
+      as.numeric(input$ckk_kanibalizm)
+      ))
+    return(CKK)
+  })
+  
+  ## 0.1.8 Kanibalizacja mapa dane do niej ####
+  KanibalizacjaRynku_dane <- reactive({
+    #input$goButton_kanibalizm
+    
+    ret <- WystawNajblizszeCKKdlaPunktu(
+      data = Mam_GPS_temp,
+      ID = Kanibalizacja_CKK(),
+      distInMeters = input$kanibalizm_km * 1000
+    )
+    
+    return(ret)
+  })
+  
+  output$selected_var <- renderText({ 
+    paste("You have selected",
+          input$ckk_kanibalizm,
+          "\nClass to:",
+          class(input$ckk_kanibalizm),
+          "\nA kanibalizacja_CKK() to: ", Kanibalizacja_CKK())
+  })
+  
   ## 0.1.8 Kanibalizacja mapa#####
   output$kanibalizm_mapa <-  renderLeaflet({
-    input$goButton_kanibalizm
-    Apteka_dane <-
-      isolate(read.csv2(
-        paste0(
-          "C:\\Users\\msiwik\\Desktop\\FOLDER R\\Analiza_Prepeparatow\\Dane\\GPS\\",
-          input$ckk_kanibalizm,
-          ".csv"
-        )
-      ))
     
-    AptekaCentrum <- isolate(as.numeric(input$ckk_kanibalizm))
-    centr_LNG <-
-      isolate(Mam_GPS_temp$lng[Mam_GPS_temp$ID == AptekaCentrum])
-    centr_LAT <-
-      isolate(Mam_GPS_temp$lat[Mam_GPS_temp$ID == AptekaCentrum])
+    #input$goButton_kanibalizm
+
+    Apteka_dane <- KanibalizacjaRynku_dane() %>%
+      left_join(RodzajPodmiotu, by = "ID")
+
+   AptekaCentrum <- Kanibalizacja_CKK()
+    centr_LNG <- Apteka_dane$lng[Apteka_dane$ID == AptekaCentrum]
+    centr_LAT <- Apteka_dane$lat[Apteka_dane$ID == AptekaCentrum]
     
     ret <- isolate(
       Apteka_dane %>%
-        filter(Dist_in_meters <= input$kanibalizm_km * 1000) %>%
-        left_join(select(Mam_GPS_temp, ID, lng, lat), by = c("ID_2" = "ID")) %>%
+        #filter(Dist_in_meters <= input$kanibalizm_km * 1000) %>%
+        #left_join(select(Mam_GPS_temp, ID, lng, lat), by = c("ID_2" = "ID")) %>%
         leaflet() %>%
         addTiles() %>%
         setView(
@@ -323,66 +397,104 @@ shinyServer(function(input, output, session) {
           zoom = 8
         ) %>%
         addMarkers(lng =  ~ lng,
-                   lat = ~ lat) %>%
+                   lat = ~ lat,
+                   popup = ~paste0("CKK apteki: ", ID,
+                                   "<br>",
+                                   "Płatnik:", PLATNIK,
+                                   "<br>",
+                                   "Miasto: ",MIEJSCOWOSC,
+                                   "<br>",
+                                   "Ulica: ", ULICA,
+                                   "<br>",
+                                   "Odległość od wybranej apteki: ", paste0(
+                                     round(Dist_in_meters/1000,1), " km"),
+                                   "<br>",
+                                   "<br>",
+                                   "Za okres: ", paste0("od ",input$kanibalizm_daterange[1],
+                                                        " do ", input$kanibalizm_daterange[2]))) %>%
         addCircleMarkers(centr_LNG, centr_LAT)
     )
-    
-    # ~paste0("CKK apteki: ", CKK,
-    #         "<br>",
-    #         "Miasto: ",MIEJSCOWOSC,
-    #         "<br>",
-    #         "Ulica: ", ULICA,
-    #         "<br>",
-    #         "Udział pseudoefedryny w zakupach: ", percent(WSK_PSEUDOEFEDRYNA),
-    #         "<br>",
-    #         "Wartość zakupu pseudoefedryny: ", paste0(round(PSEUDOEFEDRYNA_WCSN/1000), "tys. zł."),
-    #         "<br>",
-    #         "Za okres: ", "od 2018-01-01 do 2018-05-31")
     return(ret)
   })
   
   output$kanibalizm_dt <- renderDataTable({
-    Apteka_dane <-
-      read.csv2(
-        paste0(
-          "C:\\Users\\msiwik\\Desktop\\FOLDER R\\Analiza_Prepeparatow\\Dane\\GPS\\",
-          input$ckk_raport_download,
-          ".csv"
-        )
-      )
     
-    AptekaCentrum <- as.numeric(input$kanibalizm_ckk)
+     input$goButton_kanibalizm
     
-    Apteka_dane %>%
-      filter(Dist_in_meters <= input$kanibalizm_km * 1000) %>%
-      left_join(select(Mam_GPS_temp, ID, lng, lat), by = c("ID_2" = "ID")) %>%
-      select(ID_2) -> WybraneApteki
+    Apteka_dane <- isolate(KanibalizacjaRynku_dane())
+     
+    Wartosci <- isolate(YM_ALL_WSK %>%
+    filter(CKK %in% Apteka_dane$ID) %>%
+        mutate(YMD = ymd(paste0(YM, "-01"))) %>%
+         filter(
+           YMD >= ymd(input$kanibalizm_daterange[1]),
+           YMD <= ymd(input$kanibalizm_daterange[2])
+         ) %>%
+         group_by(CKK) %>%
+         summarise(WCSN_ALL = sum(WCSN_ALL, na.rm = T)) %>%
+         arrange(desc(WCSN_ALL)) %>%
+         mutate(Udzial_proc = percent(WCSN_ALL / sum(WCSN_ALL))))
     
-    YM_ALL_WSK %>%
-      filter(CKK %in% WybraneApteki$ID_2) %>%
-      mutate(YMD = ymd(paste0(YM, "-01"))) %>%
-      filter(
-        YMD >= ymd(input$kanibalizm_daterange[1]),
-        YMD <= ymd(input$kanibalizm_daterange[2])
-      ) %>%
-      group_by(CKK) %>%
-      summarise(WCSN_ALL = sum(WCSN_ALL, na.rm = T)) %>%
-      arrange(desc(WCSN_ALL)) %>%
-      mutate(Udzial_proc = percent(WCSN_ALL / sum(WCSN_ALL))) %>%
-      left_join(
-        select(
-          BAZA_CKK,
-          ID,
-          PLATNIK,
-          NIP,
-          MIEJSCOWOSC,
-          ULICA,
-          STATUS,
-          Podiot
-        ),
-        by = c("CKK" = "ID")
-      )
+    Apteka_dane <- isolate(Apteka_dane %>%
+                             left_join(Wartosci, by = c("ID"="CKK")) %>%
+                             filter(WCSN_ALL > 0) %>%
+                             arrange(desc(WCSN_ALL)) %>%
+                             mutate(WCSN_ALL = PLN(round(WCSN_ALL))) %>%
+                             left_join(select(BAZA_CKK, ID, Podmiot), by = c("ID"="ID")) %>%
+                             select(ID, PLATNIK, Udzial_proc, WCSN_ALL, Podmiot))
+      
+    ret <- Apteka_dane
+    return(ret)
     
+    # 
+    # Apteka_dane <- Mam_GPS_temp
+    # 
+    # 
+    # AptekaCentrum <- isolate(as.numeric(input$ckk_kanibalizm))
+    # 
+    # if (is.null(AptekaCentrum)) {
+    #   AptekaCentrum <- 16517
+    # }
+    # centr_LNG <-
+    #   isolate(Mam_GPS_temp$lng[Mam_GPS_temp$ID == AptekaCentrum])
+    # centr_LAT <-
+    #   isolate(Mam_GPS_temp$lat[Mam_GPS_temp$ID == AptekaCentrum])
+    # 
+    # temp <-
+    #   isolate(ObliczOdleglosciOdPunktu(data = Mam_GPS_temp, id = AptekaCentrum))
+    # 
+    # 
+    # isolate(Apteka_dane %>%
+    #   left_join(select(temp, ID_2, Dist_in_meters), by = c("ID" = "ID_2"))) -> Apteka_dane 
+    # 
+    # 
+    # 
+    # isolate(Apteka_dane %>%
+    #   filter(Dist_in_meters <= input$kanibalizm_km * 1000) %>%
+    #   select(ID)) -> WybraneApteki
+    # 
+    # isolate(YM_ALL_WSK %>%
+    #   filter(CKK %in% WybraneApteki$ID) %>%
+    #   mutate(YMD = ymd(paste0(YM, "-01"))) %>%
+    #   filter(
+    #     YMD >= ymd(input$kanibalizm_daterange[1]),
+    #     YMD <= ymd(input$kanibalizm_daterange[2])
+    #   ) %>%
+    #   group_by(CKK) %>%
+    #   summarise(WCSN_ALL = sum(WCSN_ALL, na.rm = T)) %>%
+    #   arrange(desc(WCSN_ALL)) %>%
+    #   mutate(Udzial_proc = percent(WCSN_ALL / sum(WCSN_ALL))) %>%
+    #   left_join(
+    #     select(
+    #       BAZA_CKK,
+    #       ID,
+    #       PLATNIK,
+    #       Podmiot
+    #     ),
+    #     by = c("CKK" = "ID")
+    #   )) -> ret
+    # 
+ 
     
   })
   
