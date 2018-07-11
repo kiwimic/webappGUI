@@ -1,4 +1,4 @@
-
+library(geosphere)
 library(ggplot2)
 library(scales)
 library(dplyr)
@@ -11,6 +11,7 @@ library(tidyr)
 library(leaflet)
 library(writexl)
 library(stringr)
+
 
 
 ### Dorobić funkcje do YM ####
@@ -100,6 +101,15 @@ CKKdoWyboru <<- YM_ALL_WSK_PSEUDO %>%
   filter(WCSN_PSEUDO > 20000) %>%
   slice(1:50)
 
+### Test na 1 do PLN
+isMoreThanOne <- Vectorize(function(x) {
+  if (all(x > 1)) {
+    ret <- T
+  } else {
+    ret <- F
+  }
+  return(ret)
+}, vectorize.args = "x")
 
 
 ## Rysowanie poziomych lini na wykresie plotly ####
@@ -364,3 +374,151 @@ data_table_plotly <- function(dataToShow = dataToPlot_pseudo(),
   return(p)
   
 }
+
+## Statystyki data table WCSN_ALL > 0!!!!##### 
+data_table_stats <- function(
+  dataToShow = YM_ALL_WSK,
+  input_data_start =  "2016-06-01",
+  input_data_koniec = "2018-06-30"
+) {
+  
+  dataToShow %>%
+    mutate(YMD = ymd(paste0(YM, "-01"))) %>%
+    filter(YMD >= ymd(input_data_start),
+           YMD <= ymd(input_data_koniec)) %>%
+    group_by(CKK) %>%
+    summarise_if(is.numeric, sum, na.rm = T) %>%
+    filter(WCSN_ALL > 0) %>%
+    mutate(WSK_PSEUDO = WCSN_PSEUDO/WCSN_ALL) %>%
+    mutate(WSK_DEF = WCSN_DEF/WCSN_ALL) %>%
+    mutate(WSK_REF = WCSN_REF/WCSN_ALL) %>%
+    mutate(WSK_PSEUDO = ifelse(is.na(WSK_PSEUDO), 0, WSK_PSEUDO)) %>%
+    mutate(WSK_PSEUDO = ifelse(WSK_PSEUDO > 1, 1, WSK_PSEUDO),
+           WSK_PSEUDO = ifelse(WSK_PSEUDO < 0, 0, WSK_PSEUDO)) %>%
+    mutate(WSK_DEF = ifelse(is.na(WSK_DEF), 0, WSK_DEF)) %>%
+    mutate(WSK_DEF = ifelse(WSK_DEF > 1, 1, WSK_DEF),
+           WSK_DEF = ifelse(WSK_DEF < 0, 0, WSK_DEF)) %>%
+    mutate(WSK_REF = ifelse(is.na(WSK_REF), 0, WSK_REF)) %>%
+    mutate(WSK_REF = ifelse(WSK_REF > 1, 1, WSK_REF),
+           WSK_REF = ifelse(WSK_REF < 0, 0, WSK_REF)) -> data
+  
+  data %>%
+    summarise_if(is.numeric, mean, na.rm = T) %>%
+    mutate(Metric = "Mean: ",
+           Opis = "Średnia") %>%
+    select(Metric, everything()) -> Mean
+  
+  data %>%
+    summarise_if(is.numeric, min, na.rm = T) %>%
+    mutate(Metric = "Min: ",
+           Opis = "Minimum") %>%
+    select(Metric, everything()) -> Min
+  
+  data %>%
+    summarise_if(is.numeric, max, na.rm = T) %>%
+    mutate(Metric = "Max: ",
+           Opis = "Maksimum") %>%
+    select(Metric, everything()) -> Max
+  
+  data %>%
+    summarise_if(is.numeric, median, na.rm = T) %>%
+    mutate(Metric = "Median: ",
+           Opis = "Mediana") %>%
+    select(Metric, everything()) -> Median
+  
+  data %>%
+    summarise_if(is.numeric, quantile, probs = 0.025, na.rm = T) %>%
+    mutate(Metric = "Q025: ",
+           Opis = "Kwantyl 2.5%") %>%
+    select(Metric, everything()) -> Q025
+  
+  data %>%
+    summarise_if(is.numeric, quantile, probs = 0.25, na.rm = T) %>%
+    mutate(Metric = "Q25: ",
+           Opis = "Kwantyl 25%") %>%
+    select(Metric, everything()) -> Q25
+  
+  data %>%
+    summarise_if(is.numeric, quantile, probs = 0.75, na.rm = T) %>%
+    mutate(Metric = "Q75: ",
+           Opis = "Kwantyl 75%") %>%
+    select(Metric, everything()) -> Q75
+  
+  data %>%
+    summarise_if(is.numeric, quantile, probs = 0.975, na.rm = T) %>%
+    mutate(Metric = "Q975: ",
+           Opis = "Kwantyl 97.5%") %>%
+    select(Metric, everything()) -> Q975
+  
+  data %>%
+    summarise_if(is.numeric, quantile, probs = 0.99, na.rm = T) %>%
+    mutate(Metric = "Q99: ",
+           Opis = "Kwantyl 99%") %>%
+    select(Metric, everything()) -> Q99
+  
+  ret <- bind_rows(Mean, Min, Max, Median, Q025, Q25, Q75, Q975, Q99) %>%
+    mutate_at(vars(matches("^WSK")), percent) %>%
+    mutate_at(vars(matches("^WCSN")), PLN) %>%
+    select(Metric, Opis, everything()) %>%
+    select(-CKK)
+   
+  
+  return(ret)
+  
+ #return(iris)
+}
+
+
+
+ObliczOdleglosciOdPunktu <- function(data, id) {
+  lat_id <- data[data$ID == id,]$lat
+  lng_id <- data[data$ID == id,]$lng
+  temp_dist <- vector(mode = "numeric", length = nrow(data))
+  ret <- tibble(ID = id,
+                ID_2 = data$ID,
+                Dist_in_meters = NA)
+  ST <- Sys.time()
+  for (i in 1:nrow(data)) {
+    temp_dist[i] <-
+      distHaversine(p1 = c(lat_id, lng_id),
+                    p2 = c(data$lat[i], data$lng[i]))
+    
+  }
+  ret$Dist_in_meters <- temp_dist
+  return(ret)
+}
+
+data <- Mam_GPS_temp
+ID <- 16571
+distInMeters <- 1000
+WystawNajblizszeCKKdlaPunktu <- function(data, ID, distInMeters) {
+  
+  if (is.null(ID)) {
+    ID <- 16571
+  }
+  
+  lat_id <- data[data$ID == ID,]$lat
+  lng_id <- data[data$ID == ID,]$lng
+  
+  IloscSekundGEO <- distInMeters/10
+  
+  lat_lim <- c(lat_id -  IloscSekundGEO/3600, lat_id +  IloscSekundGEO/3600)
+  lng_lim <- c(lng_id -  IloscSekundGEO/3600, lng_id +  IloscSekundGEO/3600)
+  
+  data %>%
+    filter(lng <= lng_lim[2], lng >= lng_lim[1]) %>%
+    filter(lat <= lat_lim[2], lat >= lat_lim[1]) -> temp
+
+  disty <- ObliczOdleglosciOdPunktu(temp, ID)
+  
+  
+  temp %>%
+    left_join(select(disty, ID_2, Dist_in_meters), by = c("ID"="ID_2")) %>%
+    filter(Dist_in_meters < distInMeters) -> ret
+  
+  return(ret)  
+}
+
+
+
+WystawNajblizszeCKKdlaPunktu(data = Mam_GPS_temp, ID = 16571, distInMeters = 1000)
