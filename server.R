@@ -28,6 +28,79 @@ shinyServer(function(input, output, session) {
     server = TRUE
   )
   
+  updateSelectizeInput(
+    session = session,
+    inputId = "ckp_def_wybor",
+    choices = c(Choose = '', unique(BAZA_CKK$PLATNIK)),
+    server = TRUE
+  )
+  
+  updateSelectizeInput(
+    session = session,
+    inputId = "ckp_ref_wybor",
+    choices = c(Choose = '', unique(BAZA_CKK$PLATNIK)),
+    server = TRUE
+  )
+  
+  updateSelectizeInput(
+    session = session,
+    inputId = "ckp_pseudo_wybor",
+    choices = c(Choose = '', unique(BAZA_CKK$PLATNIK)),
+    server = TRUE
+  )
+  
+  ###CKP_DEF##
+  CKP_def <- reactive({
+    
+    input$goButton_def
+    
+    CKK <- isolate(ifelse(
+      is.na(as.numeric(input$ckp_def_wybor)),
+      NA,
+      as.numeric(input$ckp_def_wybor)
+    ))
+    return(CKK)
+  })
+  
+  ###CKP_REF##
+  CKP_ref <- reactive({
+    
+    input$goButton_ref
+    
+    CKK <- isolate(ifelse(
+      is.na(as.numeric(input$ckp_ref_wybor)),
+      NA,
+      as.numeric(input$ckp_ref_wybor)
+    ))
+    return(CKK)
+  })
+  
+  ###CKP_PSEUDO##
+  CKP_pseudo <- reactive({
+    
+    input$goButton_pseudo
+    
+    CKK <- isolate(ifelse(
+      is.na(as.numeric(input$ckp_pseudo_wybor)),
+      NA,
+      as.numeric(input$ckp_pseudo_wybor)
+    ))
+    return(CKK)
+  })
+  
+  ###CKP_custom##
+  CKP_custom <- reactive({
+    
+    input$goButton_custom
+    
+    CKK <- isolate(ifelse(
+      is.na(as.numeric(input$ckp_custom_wybor)),
+      NA,
+      as.numeric(input$ckp_custom_wybor)
+    ))
+    return(CKK)
+  })
+  
 
   dataToStats <- reactive({
     input$goButton_stats
@@ -48,7 +121,7 @@ shinyServer(function(input, output, session) {
       
    })
    
-   ## 0.1.1 Dane do scatter psedo jako reactive, by nie liczyć kilkukrotnie ####
+   ## 0.1.1 Dane do scatter custom jako reactive, by nie liczyć kilkukrotnie ####
    dataToPlot_custom<- reactive({
      input$goButton_custom
      
@@ -74,6 +147,8 @@ shinyServer(function(input, output, session) {
     dataToPlot <- isolate(
       DaneDoScatter(
         dane = YM_ALL_WSK,
+        Platnik = CKP_pseudo(),
+        CKK = NA,
         input_data_start = input$dateRange_pseudo[1],
         input_data_koniec = input$dateRange_pseudo[2],
         input_proc = input$Proc_pseudo,
@@ -91,6 +166,8 @@ shinyServer(function(input, output, session) {
     dataToPlot <- isolate(
       DaneDoScatter(
         dane = YM_ALL_WSK,
+        Platnik = CKP_ref(),
+        CKK = NA,
         input_data_start = input$dateRange_ref[1],
         input_data_koniec = input$dateRange_ref[2],
         input_proc = input$Proc_ref,
@@ -107,6 +184,8 @@ shinyServer(function(input, output, session) {
     dataToPlot <- isolate(
       DaneDoScatter(
         dane = YM_ALL_WSK,
+        Platnik = CKP_def(),
+        CKK = NA,
         input_data_start = input$dateRange_def[1],
         input_data_koniec = input$dateRange_def[2],
         input_proc = input$Proc_def,
@@ -351,7 +430,9 @@ shinyServer(function(input, output, session) {
       ))
     return(CKK)
   })
-  
+   
+   
+
   ## 0.1.8 Kanibalizacja mapa dane do niej ####
   KanibalizacjaRynku_dane <- reactive({
     #input$goButton_kanibalizm
@@ -689,6 +770,7 @@ shinyServer(function(input, output, session) {
         input_proc = input$Proc_def,
         d1 = input$dateRange_def[1],
         d2 = input$dateRange_def[2],
+        CKP = CKP_def(),
         points = event_data("plotly_selected", source = "def_scatter")$pointNumber
       )
       

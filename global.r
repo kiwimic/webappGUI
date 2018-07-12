@@ -70,6 +70,13 @@ eom <- function(x) {
   som(som(x) + 35) - 1
 }
 
+emptyPlotly <- function(textToPrint = "", sizeOfText = 8) {
+  
+  df <- tibble(x = 1:10, y = 1:10)
+  ggplot(df, aes(x, y)) + geom_blank() +theme_void() + geom_text(aes(x = 5, y = 7,label = textToPrint), size = sizeOfText) -> gg
+  ggplotly(gg)
+  
+}
 
 Apteka_16571 <- read.csv2("C:\\Users\\msiwik\\Desktop\\FOLDER R\\Analiza_Prepeparatow\\Dane\\GPS\\16571.csv")
 
@@ -178,7 +185,8 @@ plot_ly(data =YM_ALL_WSK_grouped,
 
 ## Scatter plot plotly #####
 DaneDoScatter <- function(dane,
-                          WSK, 
+                          Platnik = NA,
+                          CKK = NA,
                           input_data_start,
                           input_data_koniec,
                           input_proc = 40,
@@ -209,11 +217,26 @@ DaneDoScatter <- function(dane,
   arrange(desc((!!sym_Wart_COL))) %>%
   mutate(LP = (1:n())-1) -> ret
   
+  if (!is.na(as.numeric(Platnik))) {
+    ret %>%
+      filter(PLATNIK == as.numeric(Platnik)) -> ret
+    
+  }
+  
+  if (!is.na(as.numeric(CKK))) {
+    ret %>%
+      filter(CKK == as.numeric(CKK)) -> ret
+    
+  }
+  
+  if (nrow(ret) == 0) {
+    ret <- tibble()
+  } else {
+    ret %>%
+      mutate(LP = (1:n())-1) -> ret
+  }
   return(ret)
-  # d1 <- input$dateRange[1]
-  # d2 <- input$dateRange[2]  
-  # p3 <- input$Proc
-  # p4 <- input$Wart
+
 }
 
 ## Wykres dla danych z ScatterPlolty####
@@ -230,44 +253,50 @@ ScatterPlotly <- function(dane,
   #sym_WSK_COL <- enquo(sym_WSK_COL)
   stringZopisem <- paste0("</br> Wartość sprzedaży ", fragmentOpisu, " w zł: ")
   
-plot_ly(
-    dane,
-    x = dane[[Wart_COL]],
-    y = dane[[WSK_COL]],
-    type = 'scatter',
-    mode = 'markers',
-    hoverinfo = 'text',
-    source = source,
-    text = ~ paste(
-      'CKK: ',
-      CKK,
-      '</br>',
-      stringZopisem,
-      paste0(round(dane[[Wart_COL]] / 1000, 1), "tys"),
-      '</br> Udział %: ',
-      percent(dane[[WSK_COL]]),
-      '</br> Płatnik: ',
-      PLATNIK,
-      '</br> Miasto: ',
-      MIEJSCOWOSC,
-      '</br> Ulica: ',
-      ULICA,
-      '</br> LP: ', dane[['LP']])
-) %>%
-  layout(
-    dragmode = "select",
-    xaxis = list(title = "Wartość w zł"),
-    yaxis = list(
-      title = "Wskaźnik %",
-      range = c(0, 1.05),
-      tickformat = "%"
-    )#,
-    #shapes = list(
-    #  hline(input_proc / 100, color = "red"),
-    #  vline(input_wart * 1000, color = "red")
-    #)
-  ) %>%
-  config(displayModeBar = F)
+  #"Dane mogą być w innym zakresie filtru\nSpróbuj zmiejszyć wartości do 0"
+  if (nrow(dane) == 0) {
+    emptyPlotly(textToPrint = "Dane mogą być w innym zakresie filtru\nSpróbuj zmiejszyć wartości suwaków do 0", sizeOfText = 5)
+  } else {
+    plot_ly(
+      dane,
+      x = dane[[Wart_COL]],
+      y = dane[[WSK_COL]],
+      type = 'scatter',
+      mode = 'markers',
+      hoverinfo = 'text',
+      source = source,
+      text = ~ paste(
+        'CKK: ',
+        CKK,
+        '</br>',
+        stringZopisem,
+        paste0(round(dane[[Wart_COL]] / 1000, 1), "tys"),
+        '</br> Udział %: ',
+        percent(dane[[WSK_COL]]),
+        '</br> Płatnik: ',
+        PLATNIK,
+        '</br> Miasto: ',
+        MIEJSCOWOSC,
+        '</br> Ulica: ',
+        ULICA,
+        '</br> LP: ', dane[['LP']])
+    ) %>%
+      layout(
+        dragmode = "select",
+        xaxis = list(title = "Wartość w zł"),
+        yaxis = list(
+          title = "Wskaźnik %",
+          range = c(0, 1.05),
+          tickformat = "%"
+        )#,
+        #shapes = list(
+        #  hline(input_proc / 100, color = "red"),
+        #  vline(input_wart * 1000, color = "red")
+        #)
+      ) %>%
+      config(displayModeBar = F)
+  }
+  
 }
 # 
 # ScatterPlotly(dane = test,
