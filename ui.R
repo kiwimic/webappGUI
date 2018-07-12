@@ -23,7 +23,7 @@ dashboardPage(
     ## 0.1.2.1 Zakładki sidebar####
     menuItem("Podstawowe statystyki", tabName = "podst_stats"),
     menuItem("Przegląd pseudoefedryny", tabName = "pseudoefedryna"),
-    menuItem("Przeglad deficytów", tabName = "deficyty"),
+    menuItem("Przegląd deficytów", tabName = "deficyty"),
     menuItem("Przegląd refundowanych", tabName = "refundacja"),
     menuItem("Przegląd wybranych CKT", tabName = "custom_ckk"),
     menuItem("Kanibalizacja rynku", tabName = "kanibalizm"),
@@ -86,6 +86,10 @@ dashboardPage(
             start = ymd("2016-06-01"),
             end = Sys.Date()
           ),
+          selectizeInput(
+            inputId = 'ckp_pseudo_wybor', label = 'Wybierz/wpisz CKP Płatnika',
+            choices = NULL
+          ),
           actionButton("goButton_pseudo", "Filtruj!"),
           downloadButton("download_pseudo_widok", "Pobierz widok")
         ),
@@ -118,7 +122,7 @@ dashboardPage(
           sliderInput(
             "Wart_ref",
             "Wartość zakupu refundacji w tys zł:",
-            min = 1,
+            min = 0,
             max = 1000,
             value = 50
           ),
@@ -127,6 +131,10 @@ dashboardPage(
             label = 'Wybierz okres: RRRR-MM-DD',
             start = ymd("2016-06-01"),
             end = Sys.Date()
+          ),
+          selectizeInput(
+            inputId = 'ckp_ref_wybor', label = 'Wybierz/wpisz CKP Płatnika',
+            choices = NULL
           ),
           actionButton("goButton_ref", "Filtruj!"),
           downloadButton("download_ref_widok", "Pobierz widok")
@@ -160,7 +168,7 @@ dashboardPage(
           sliderInput(
             "Wart_custom",
             "Wartość wybranych preparatów w tys zł:",
-            min = 1,
+            min = 0,
             max = 1000,
             value = 50
           ),
@@ -278,7 +286,7 @@ dashboardPage(
           sliderInput(
             "Wart_def",
             "Wartość zakupu deficytów w tys zł:",
-            min = 1,
+            min = 0,
             max = 1000,
             value = 20
           ),
@@ -288,6 +296,10 @@ dashboardPage(
             start = ymd("2016-06-01"),
             end = Sys.Date()
           ),
+          selectizeInput(
+            inputId = 'ckp_def_wybor', label = 'Wybierz/wpisz CKP Płatnika',
+            choices = NULL
+            ),
           actionButton("goButton_def", "Filtruj!"),
           downloadButton("download_def_widok", "Pobierz widok")
       ),
