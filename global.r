@@ -337,7 +337,7 @@ ym_select_plotly <- function(dataToPlot = dataTooPlot_pseudo(),
    
    
   if (is.null(points)) {
-   p <- plot_ly(data = iris, x = ~Sepal.Length, y = ~Petal.Length)
+   p <- emptyPlotly(textToPrint = "Nie zaznaczyłeś punktów na górnym wykresie.\nZaznacz by zobaczyć miesięczne dane dla wybranych aptek.", sizeOfText = 5)
   } else { 
     
   
