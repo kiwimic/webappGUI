@@ -78,35 +78,35 @@ emptyPlotly <- function(textToPrint = "", sizeOfText = 8) {
   
 }
 
-Apteka_16571 <- read.csv2("C:\\Users\\msiwik\\Desktop\\FOLDER R\\Analiza_Prepeparatow\\Dane\\GPS\\16571.csv")
+# Apteka_16571 <- read.csv2("C:\\Users\\msiwik\\Desktop\\FOLDER R\\Analiza_Prepeparatow\\Dane\\GPS\\16571.csv")
 
-YM_ALL_WSK_PSEUDO <- YM_ALL_WSK %>%
-  filter(!is.na(WCSN_PSEUDO)) %>%
-  filter(WCSN_PSEUDO > 0) %>%
-  mutate(YMD = ymd(paste0(YM, "-01")))
+# YM_ALL_WSK_PSEUDO <- YM_ALL_WSK %>%
+#   filter(!is.na(WCSN_PSEUDO)) %>%
+#   filter(WCSN_PSEUDO > 0) %>%
+#   mutate(YMD = ymd(paste0(YM, "-01")))
+# 
+# YM_PSEUDO_PLOT2 <- YM_ALL_WSK_PSEUDO %>%
+#   mutate(YMD = ymd(paste0(YM, "-01"))) %>%
+#   group_by(CKK, YMD) %>%
+#   summarise(WCSN_PSEUDO = sum(WCSN_PSEUDO, na.rm = T)) %>%
+#   group_by(YMD) %>%
+#   mutate(PROC = round(WCSN_PSEUDO/sum(WCSN_PSEUDO),4)) %>%
+#   mutate(WSK = ifelse(PROC >= 0.04, CKK, "Poniżej 4%")) %>%
+#   group_by(YMD, WSK) %>%
+#   summarise(WCSN_PSEUDO = sum(WCSN_PSEUDO, na.rm = T)) %>%
+#   ungroup() %>%
+#   group_by(YMD) %>%
+#   mutate(PROC = round(WCSN_PSEUDO/sum(WCSN_PSEUDO),4)) %>%
+#   arrange(YMD, desc(PROC)) %>%
+#   mutate(CKK = as.numeric(WSK)) %>%
+#   left_join(select(BAZA_CKK, -GPS, -NIP), by = c("CKK"="ID"))
 
-YM_PSEUDO_PLOT2 <- YM_ALL_WSK_PSEUDO %>%
-  mutate(YMD = ymd(paste0(YM, "-01"))) %>%
-  group_by(CKK, YMD) %>%
-  summarise(WCSN_PSEUDO = sum(WCSN_PSEUDO, na.rm = T)) %>%
-  group_by(YMD) %>%
-  mutate(PROC = round(WCSN_PSEUDO/sum(WCSN_PSEUDO),4)) %>%
-  mutate(WSK = ifelse(PROC >= 0.04, CKK, "Poniżej 4%")) %>%
-  group_by(YMD, WSK) %>%
-  summarise(WCSN_PSEUDO = sum(WCSN_PSEUDO, na.rm = T)) %>%
-  ungroup() %>%
-  group_by(YMD) %>%
-  mutate(PROC = round(WCSN_PSEUDO/sum(WCSN_PSEUDO),4)) %>%
-  arrange(YMD, desc(PROC)) %>%
-  mutate(CKK = as.numeric(WSK)) %>%
-  left_join(select(BAZA_CKK, -GPS, -NIP), by = c("CKK"="ID"))
-
-CKKdoWyboru <<- YM_ALL_WSK_PSEUDO %>%
-  group_by(CKK) %>%
-  summarise(WCSN_PSEUDO = sum(WCSN_PSEUDO, na.rm = T)) %>%
-  arrange(desc(WCSN_PSEUDO)) %>%
-  filter(WCSN_PSEUDO > 20000) %>%
-  slice(1:50)
+# CKKdoWyboru <<- YM_ALL_WSK_PSEUDO %>%
+#   group_by(CKK) %>%
+#   summarise(WCSN_PSEUDO = sum(WCSN_PSEUDO, na.rm = T)) %>%
+#   arrange(desc(WCSN_PSEUDO)) %>%
+#   filter(WCSN_PSEUDO > 20000) %>%
+#   slice(1:50)
 
 ### Test na 1 do PLN
 isMoreThanOne <- Vectorize(function(x) {
@@ -172,16 +172,6 @@ YM_ALL_WSK_grouped <- YM_ALL_WSK %>%
   mutate(PROC = Wart/sum(Wart),
          PROC_label = percent(PROC))
 
-plot_ly(data =YM_ALL_WSK_grouped, 
-        x = ~YMD,
-        y = ~Wart,
-        color = ~Kat,
-        type = "bar",
-        text = ~PROC_label,
-        textposition = 'auto') %>%
-  layout(yaxis = list(title = 'Wartość w zł'), barmode = 'stack')
-
-
 
 ## Scatter plot plotly #####
 DaneDoScatter <- function(dane,
@@ -194,47 +184,52 @@ DaneDoScatter <- function(dane,
                           Wart_COL = "WCSN_PSEUDO",
                           WSK_COL = "WSK_PSEUDO") {
   
-  
-  sym_Wart_COL <- rlang::sym(Wart_COL)
-  sym_WSK_COL <- rlang::sym(WSK_COL)
-  
-  
-  dataToPlot <- dane %>%
-    filter(!is.na(!!sym_Wart_COL)) %>%
-    mutate(YMD = ymd(paste0(YM, "-01"))) %>%
-    filter(YMD >= ymd(input_data_start),
-           YMD <= ymd(input_data_koniec)) %>%
-    group_by(CKK) %>%
-    summarise(WCSN_ALL = sum(WCSN_ALL, na.rm = T),
-              (!!sym_Wart_COL) := sum((!!sym_Wart_COL), na.rm = T)) %>%
-   mutate((!!sym_WSK_COL) := (!!sym_Wart_COL)/WCSN_ALL) %>%
-   mutate((!!sym_WSK_COL) := ifelse((!!sym_WSK_COL) > 1, 1, (!!sym_WSK_COL)),
-          (!!sym_WSK_COL) := ifelse((!!sym_WSK_COL) < 0, 0, (!!sym_WSK_COL))) %>%
-  filter((!!sym_WSK_COL) >= input_proc/100) %>%
-  filter((!!sym_Wart_COL) >= input_wart  * 1000) %>%
-  left_join(select(BAZA_CKK, -GPS, -NIP), by = c("CKK"="ID")) %>%
-  ungroup() %>%
-  arrange(desc((!!sym_Wart_COL))) %>%
-  mutate(LP = (1:n())-1) -> ret
-  
-  if (!is.na(as.numeric(Platnik))) {
-    ret %>%
-      filter(PLATNIK == as.numeric(Platnik)) -> ret
-    
-  }
-  
-  if (!is.na(as.numeric(CKK))) {
-    ret %>%
-      filter(CKK == as.numeric(CKK)) -> ret
-    
-  }
-  
-  if (nrow(ret) == 0) {
-    ret <- tibble()
-  } else {
-    ret %>%
-      mutate(LP = (1:n())-1) -> ret
-  }
+   if (nrow(dane) == 0) {
+     ret <- tibble()
+   } else {
+     sym_Wart_COL <- rlang::sym(Wart_COL)
+     sym_WSK_COL <- rlang::sym(WSK_COL)
+     
+     
+     dataToPlot <- dane %>%
+       filter(!is.na(!!sym_Wart_COL)) %>%
+       mutate(YMD = ymd(paste0(YM, "-01"))) %>%
+       filter(YMD >= ymd(input_data_start),
+              YMD <= ymd(input_data_koniec)) %>%
+       group_by(CKK) %>%
+       summarise(WCSN_ALL = sum(WCSN_ALL, na.rm = T),
+                 (!!sym_Wart_COL) := sum((!!sym_Wart_COL), na.rm = T)) %>%
+       mutate((!!sym_WSK_COL) := (!!sym_Wart_COL)/WCSN_ALL) %>%
+       mutate((!!sym_WSK_COL) := ifelse((!!sym_WSK_COL) > 1, 1, (!!sym_WSK_COL)),
+              (!!sym_WSK_COL) := ifelse((!!sym_WSK_COL) < 0, 0, (!!sym_WSK_COL))) %>%
+       filter((!!sym_WSK_COL) >= input_proc/100) %>%
+       filter((!!sym_Wart_COL) >= input_wart  * 1000) %>%
+       left_join(select(BAZA_CKK, -GPS, -NIP), by = c("CKK"="ID")) %>%
+       ungroup() %>%
+       arrange(desc((!!sym_Wart_COL))) %>%
+       mutate(LP = (1:n())-1) -> ret
+     
+     
+     if (!is.na(as.numeric(Platnik))) {
+       ret %>%
+         filter(PLATNIK == as.numeric(Platnik)) -> ret
+       
+     }
+     
+     if (!is.na(as.numeric(CKK))) {
+       ret %>%
+         filter(CKK == as.numeric(CKK)) -> ret
+       
+     }
+     
+     if (nrow(ret) == 0) {
+       ret <- tibble()
+     } else {
+       ret %>%
+         mutate(LP = (1:n())-1) -> ret
+     }
+   }
+ 
   return(ret)
 
 }
@@ -314,10 +309,157 @@ KanibalizacjaRynku_mapka <- function() {
   
 }
 
-ExportRaportExcelDlaApteki <- function() {
+ExportRaportExcelDlaAptekiLubCKP <- function(input_data_start = "2016-06-30",
+                                             input_data_koniec = "2018-05-31",
+                                             CKK = 16571,
+                                             Platnik = NA) {
+  
+  d1 <- as.numeric(som(input_data_start)) * 86400
+  d2 <- as.numeric(eom(input_data_koniec)) * 86400
   
   
-  writexl::write_xlsx(mtcars, path = )
+  d1 <- as.POSIXct(d1, origin = "1970-01-01 00:00:00 UTC")
+  d2 <- as.POSIXct(d2, origin = "1970-01-01 00:00:00 UTC")
+  
+  
+  hour(d1) <- 0
+  minute(d1) <- 0
+  second(d1) <- 0
+  
+  hour(d2) <- 23
+  minute(d2) <- 59
+  second(d2) <- 59
+  
+  d1 <- as.numeric(d1)
+  d2 <- as.numeric(d2)
+  
+ 
+  CKK_apteki <- as.numeric(CKK)
+ 
+  CKP_apteki <- as.numeric(Platnik)
+  
+  if (!is.na(CKP_apteki)) {
+    BAZA_CKK %>%
+      filter(PLATNIK == CKP_apteki) %>%
+      select(ID) %>%
+      unlist() %>%
+      unname() -> CKK_apteki
+  }
+ 
+   
+  DaneDuzaBaza_tab1 <- tbl(myDB, "tab1") %>%
+    filter(CKK %in% CKK_apteki) %>%
+    filter(DATA_ZAFAKTUROWANIA >= d1, DATA_ZAFAKTUROWANIA <= d2) %>%
+    group_by(CKK, CKT, DATA_ZAFAKTUROWANIA) %>%
+    summarise(
+      WCSN = sum(WCSN, na.rm = T),
+      WCSN_PO_RABATACH = sum(WCSN_PO_RABATACH, na.rm = T),
+      ILOSC = sum(ILOSC, na.rm = T),
+      LICZBA_WIERSZY = n()
+    ) %>%
+    collect() %>%
+    left_join(select(BAZA_CKT, ID, NAZWA_OFERTOWA, Opis_caly),
+              by = c("CKT" = "ID")) %>%
+    ungroup() %>%
+    mutate(
+      DATA_ZAFAKTUROWANIA = as.POSIXct(DATA_ZAFAKTUROWANIA, origin = "1970-01-01 00:00:00 UTC"),
+      YM = str_sub(as.character(DATA_ZAFAKTUROWANIA), 1, 7)
+    ) %>%
+   left_join(select(BAZA_CKK, ID, PLATNIK), by = c("CKK"="ID")) %>%
+    select(PLATNIK, CKK, everything())
+  
+  
+  DanePSEDO <- DaneDuzaBaza_tab1 %>%
+    semi_join(BAZA_PSEUDO, by = c("CKT" = "ID"))
+  
+  DaneDEF <- DaneDuzaBaza_tab1 %>%
+    inner_join(BAZA_DEF, by = c("CKT" = "ID"))
+  
+  
+  DaneREF <- DaneDuzaBaza_tab1 %>%
+    inner_join(BAZA_REF, by = c("CKT" = "ID")) %>%
+    mutate(
+      START = as.POSIXct.Date(START, origin = "1970-01-01 00:00:00 UTC"),
+      KONIEC = as.POSIXct.Date(KONIEC, origin = "1970-01-01 00:00:00 UTC")
+    ) %>%
+    mutate(WCSN_REF = ifelse(
+      DATA_ZAFAKTUROWANIA >= START &
+        DATA_ZAFAKTUROWANIA <= KONIEC,
+      WCSN,
+      0
+    ))
+  
+  DaneDEF2 <- DaneDEF %>%
+    mutate(
+      START = as.POSIXct.Date(START, origin = "1970-01-01 00:00:00 UTC"),
+      KONIEC = as.POSIXct.Date(KONIEC, origin = "1970-01-01 00:00:00 UTC")
+    ) %>%
+    mutate(WCSN_DEF = ifelse(
+      DATA_ZAFAKTUROWANIA >= START &
+        DATA_ZAFAKTUROWANIA <= KONIEC,
+      WCSN,
+      0
+    ))
+  
+  Legenda <- tibble()
+  Podsum <- tibble()
+  TOP_Preparaty <- DaneDuzaBaza_tab1 %>%
+    group_by(PLATNIK, CKT, NAZWA_OFERTOWA) %>%
+    summarise(WCSN = sum(WCSN, na.rm = T),
+              ILOSC = sum(ILOSC, na.rm = T)) %>%
+    arrange(desc(WCSN)) %>%
+    ungroup() %>%
+    mutate(PROC = percent(WCSN/sum(WCSN)),
+           CUMSUM = percent(cumsum(WCSN/sum(WCSN))))
+  
+  
+  x1 <- tibble(Opis = "Wartość sprzedaży do apteki: ",
+               Wart = sum(DaneDuzaBaza_tab1$WCSN, na.rm = T))
+  
+  x2 <- tibble(Opis = "Wartość sprzedaży z rabatem do apteki: ",
+               Wart = sum(DaneDuzaBaza_tab1$WCSN_PO_RABATACH, na.rm = T))
+  
+  x3 <- tibble(Opis = "Wartaźniki rabatu: ",
+               Proc = 1 - (x2$Wart/x1$Wart))
+  
+  x4 <- tibble(Opis = "Wartość sprzedaży pseudoefedryny: ",
+               Wart= sum(DanePSEDO$WCSN, na.rm = T))
+  
+  x5 <- tibble(Opis = "Udział sprzedaży pseudoefedryny: ",
+               Proc = x4$Wart/x1$Wart)
+  
+  x6 <- tibble(Opis = "Wartość sprzedaży deficytów: ",
+               Wart = sum(DaneDEF$WCSN, na.rm = T))
+  
+  x7 <- tibble(Opis = "Udział sprzedaży deficytów: ",
+               Proc = x6$Wart/x1$Wart)
+  
+  x8 <- tibble(Opis = "Wartość sprzedaży deficytów(2) (czas obowiązywania listy)",
+               Wart = sum(DaneDEF2$WCSN_DEF, na.rm = T))
+  
+  x9 <- tibble(Opis = "Udział deficytów(2) w sprzedaży: ",
+               Proc = x8$Wart/x1$Wart)
+  
+  x10 <- tibble(Opis = "Wartość sprzedaży preparatów refundacyjnych (czas obowiązywania listy): ",
+                Wart = sum(DaneREF$WCSN_REF, na.rm = T))
+  
+  x11 <- tibble(Opis = "Udział refundacji w całej sprzedaży: ",
+                Proc  = x10$Wart/x1$Wart)
+  Podsum <- bind_rows(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11)
+    
+  
+  ret <- list(
+    #Legenda = Legenda,
+    Podsum = Podsum,
+    TOP_preparaty = TOP_Preparaty,
+    Dane_zrodlowe = DaneDuzaBaza_tab1,
+    Pseudoefedryna = DanePSEDO,
+    Deficyty = DaneDEF,
+    Deficyty_czas_lista = DaneDEF2,
+    Refundacja = DaneREF
+  )
+  
+  return(ret)
 }
 
 ## Wykres YM dla danych zaznaczonych z ScatterPlotly ####
@@ -326,7 +468,8 @@ ym_select_plotly <- function(dataToPlot = dataTooPlot_pseudo(),
                              points = NA,
                              Wart_COL = "WCSN_PSEUDO",
                              name1 = "Sprzedaż pozostała",
-                             name2 = "Sprzedaż pseudoefedryny") {
+                             name2 = "Sprzedaż pseudoefedryny",
+                             customdata = NA) {
  
    sym_Wart_col <- rlang::sym(Wart_COL)
    
@@ -345,12 +488,22 @@ ym_select_plotly <- function(dataToPlot = dataTooPlot_pseudo(),
     filter(LP %in% points) %>%
     select(CKK) 
   
-  dataToPlot <- YM_ALL_WSK %>%
-    filter(CKK %in% dataToPlot_temp$CKK) %>%
-    mutate(WCSN_ALL_DIFF = WCSN_ALL - (!!sym_Wart_col)) %>%
-    group_by(YMD) %>%
-    summarise(WCSN_ALL_DIFF = sum(WCSN_ALL_DIFF, na.rm = T),
-              (!!sym_Wart_col) := sum((!!sym_Wart_col), na.rm = T))
+  if (!is.na(customdata)) {
+   dataToPlot <-  customdata %>%
+     filter(CKK %in% dataToPlot_temp$CKK) %>%
+     mutate(WCSN_ALL_DIFF = WCSN_ALL - (!!sym_Wart_col)) %>%
+     mutate(YMD = ymd(paste0(YM, "-1"))) %>%
+     group_by(YMD) %>%
+     summarise(WCSN_ALL_DIFF = sum(WCSN_ALL_DIFF, na.rm = T),
+               (!!sym_Wart_col) := sum((!!sym_Wart_col), na.rm = T))
+  } else {
+    dataToPlot <- YM_ALL_WSK %>%
+      filter(CKK %in% dataToPlot_temp$CKK) %>%
+      mutate(WCSN_ALL_DIFF = WCSN_ALL - (!!sym_Wart_col)) %>%
+      group_by(YMD) %>%
+      summarise(WCSN_ALL_DIFF = sum(WCSN_ALL_DIFF, na.rm = T),
+                (!!sym_Wart_col) := sum((!!sym_Wart_col), na.rm = T))
+  }
   
   p <- plot_ly(
       dataToPlot,
@@ -517,9 +670,7 @@ ObliczOdleglosciOdPunktu <- function(data, id) {
   return(ret)
 }
 
-data <- Mam_GPS_temp
-ID <- 16571
-distInMeters <- 1000
+
 WystawNajblizszeCKKdlaPunktu <- function(data, ID, distInMeters) {
   
   if (is.null(ID)) {
@@ -547,7 +698,97 @@ WystawNajblizszeCKKdlaPunktu <- function(data, ID, distInMeters) {
   
   return(ret)  
 }
+PobierzCustomCKTzBAZY <- function(Platnik = NA,
+                                  CKK = NA,
+                                  input_data_start,
+                                  input_data_koniec,
+                                  input_proc = 0,
+                                  input_wart = 0,
+                                  wybraneCKT = NA
+                                  ) {
+    
+  
+    d1 <- as.numeric(som(input_data_start)) * 86400
+    d2 <- as.numeric(eom(input_data_koniec)) * 86400
+    
+    
+    d1 <- as.POSIXct(d1, origin = "1970-01-01 00:00:00 UTC")
+    d2 <- as.POSIXct(d2, origin = "1970-01-01 00:00:00 UTC")
+    
+    
+    hour(d1) <- 0
+    minute(d1) <- 0
+    second(d1) <- 0
+    
+    hour(d2) <- 23
+    minute(d2) <- 59
+    second(d2) <- 59
+    
+    d1 <- as.numeric(d1)
+    d2 <- as.numeric(d2)
+    
+    
+    #CKK_apteki <- isolate(as.numeric(input$ckk_raport_download))
+    #wybraneCKT <- CKT_custom()
+    #Platnik <- CKP_custom()
+ 
+    tbl(myDB, "tab1") %>%
+      filter(CKT %in% wybraneCKT) %>%
+      #filter(DATA_ZAFAKTUROWANIA >= d1, DATA_ZAFAKTUROWANIA <= d2) %>%
+      group_by(CKK, CKT, DATA_ZAFAKTUROWANIA) %>%
+      summarise(
+        WCSN = sum(WCSN, na.rm = T),
+        WCSN_PO_RABATACH = sum(WCSN_PO_RABATACH, na.rm = T),
+        ILOSC = sum(ILOSC, na.rm = T),
+        LICZBA_WIERSZY = n()
+      ) %>%
+      collect() %>%
+      left_join(select(BAZA_CKT, ID, NAZWA_OFERTOWA, Opis_caly),
+                by = c("CKT" = "ID")) %>%
+      ungroup() %>%
+      mutate(
+        DATA_ZAFAKTUROWANIA = as.POSIXct(DATA_ZAFAKTUROWANIA, origin = "1970-01-01 00:00:00 UTC"),
+        YM = str_sub(as.character(DATA_ZAFAKTUROWANIA), 1, 7)
+      ) %>%
+      group_by(CKK, YM) %>%
+      summarise(WCSN_CUSTOM = sum(WCSN, na.rm = T)) %>%
+      mutate(CKK_YM = paste0(CKK, "_", YM)) %>%
+      left_join(select(YM_ALL_WSK, CKK_YM, WCSN_ALL), by = "CKK_YM") %>%
+      mutate(WSK_CUSTOM = WCSN_CUSTOM/WCSN_ALL,
+             WSK_CUSTOM = if_else(is.na(WSK_CUSTOM), 0, WSK_CUSTOM),
+             WSK_CUSTOM = if_else(WSK_CUSTOM < 0, 0, WSK_CUSTOM),
+             WSK_CUSTOM = if_else(WSK_CUSTOM > 1, 1, WSK_CUSTOM)) %>%
+      filter(WSK_CUSTOM >= input_proc, WCSN_CUSTOM >= input_wart) %>%
+      left_join(select(BAZA_CKK, -GPS, -NIP), by = c("CKK"="ID")) %>%
+      ungroup() %>%
+      arrange(desc((WCSN_CUSTOM))) -> ret
+     
+    
+    if (!is.na(as.numeric(Platnik))) {
+      ret %>%
+        filter(PLATNIK == as.numeric(Platnik)) -> ret
+      
+    }
+    
+    if (!is.na(as.numeric(CKK))) {
+      ret %>%
+        filter(CKK == as.numeric(CKK)) -> ret
+      
+    }
+    
+    if (nrow(ret) == 0) {
+      ret <- tibble()
+    } else {
+      ret %>%
+        mutate(LP = (1:n())-1) -> ret
+    }
+    
+    
+    return(ret)
+}
 
 
 
-WystawNajblizszeCKKdlaPunktu(data = Mam_GPS_temp, ID = 16571, distInMeters = 1000)
+
+# 
+# WystawNajblizszeCKKdlaPunktu(data = Mam_GPS_temp, ID = 16571, distInMeters = 1000)
