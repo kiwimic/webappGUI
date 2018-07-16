@@ -23,6 +23,13 @@ shinyServer(function(input, output, session) {
   
   updateSelectizeInput(
     session = session,
+    inputId = "ckp_raport_download",
+    choices = c(Choose = '', unique(BAZA_CKK$PLATNIK)),
+    server = TRUE
+  )
+  
+  updateSelectizeInput(
+    session = session,
     inputId = "ckk_kanibalizm",
     choices = c(Choose = '', unique(Mam_GPS_temp$ID)),
     server = TRUE
@@ -45,6 +52,13 @@ shinyServer(function(input, output, session) {
   updateSelectizeInput(
     session = session,
     inputId = "ckp_pseudo_wybor",
+    choices = c(Choose = '', unique(BAZA_CKK$PLATNIK)),
+    server = TRUE
+  )
+  
+  updateSelectizeInput(
+    session = session,
+    inputId = "ckp_custom_wybor",
     choices = c(Choose = '', unique(BAZA_CKK$PLATNIK)),
     server = TRUE
   )
@@ -128,19 +142,58 @@ shinyServer(function(input, output, session) {
       
    })
    
-   ## 0.1.1 Dane do scatter custom jako reactive, by nie liczyć kilkukrotnie ####
-   dataToPlot_custom<- reactive({
+   CKT_custom <- reactive({
+     
      input$goButton_custom
+     
+     CKT <- isolate(ifelse(
+       is.na(as.numeric(input$ckt_custom_multi)),
+       NA,
+       as.numeric(input$ckt_custom_multi)
+     ))
+     return(CKT)
+   })
+   
+   ## Query do do danych do scatter do CUSTOM :)
+  # customCKTdata <- reactive({
+  #   
+  # })
+     
+   ## 0.1.1 Dane do scatter custom jako reactive, by nie liczyć kilkukrotnie ####
+   dataToPlot_custom_fetch <- reactive({
+     input$goButton_custom
+     
+     customCKTdata <- isolate(
+       PobierzCustomCKTzBAZY(Platnik = CKP_custom(),
+                             CKK = NA,
+                             input_data_start = input$dateRange_custom[1],
+                             input_data_koniec = input$dateRange_custom[2],
+                             wybraneCKT = CKT_custom())
+     )
+   })
+   
+   dataToPlot_custom <- reactive({
+     input$goButton_custom
+     # 
+     # customCKTdata <- isolate(
+     #   PobierzCustomCKTzBAZY(Platnik = CKP_custom(),
+     #                         CKK = NA,
+     #                         input_data_start = input$dateRange_custom[1],
+     #                         input_data_koniec = input$dateRange_custom[2],
+     #                         wybraneCKT = CKT_custom())
+     #                          )
      
      dataToPlot <- isolate(
        DaneDoScatter(
-         dane = YM_ALL_WSK,
-         input_data_start = input$dateRange_pseudo[1],
-         input_data_koniec = input$dateRange_pseudo[2],
-         input_proc = input$Proc_pseudo,
-         input_wart = input$Wart_pseudo,
-         Wart_COL = "WCSN_PSEUDO",
-         WSK_COL = "WSK_PSEUDO"
+         dane = dataToPlot_custom_fetch(),
+         Platnik = CKP_custom(),
+         CKK = NA,
+         input_data_start = input$dateRange_custom[1],
+         input_data_koniec = input$dateRange_custom[2],
+         input_proc = input$Proc_custom,
+         input_wart = input$Wart_custom,
+         Wart_COL = "WCSN_CUSTOM",
+         WSK_COL = "WSK_CUSTOM"
        )
      )
    })
@@ -203,7 +256,7 @@ shinyServer(function(input, output, session) {
     )
   })
   
-  ## 0.1.1 Scatter plot Wartość w zł vs Udział % wskaźnika psedoefedryny ####
+  ## 0.1.1 Scatter plot PSEUDOEFEDRYNA zł vs Udział % wskaźnika psedoefedryny ####
   output$pseudo_scatter_plot <- renderPlotly({
     input$goButton_pseudo
     
@@ -221,6 +274,26 @@ shinyServer(function(input, output, session) {
     return(ret)
     
   })
+   
+   ## Scatter plot CUSTOM zł vs udział wskaźnika
+   output$custom_scatter_plot <- renderPlotly({
+     input$goButton_custom
+     
+     ret <- isolate(
+       ScatterPlotly(
+         dane = dataToPlot_custom(),
+         input_proc = input$Proc_custom,
+         input_wart = input$Wart_custom,
+         Wart_COL = "WCSN_CUSTOM",
+         WSK_COL = "WSK_CUSTOM",
+         fragmentOpisu = "wybranych CKT",
+         source = "custom_scatter"
+       )
+     )
+     return(ret)
+     
+   }) 
+   
   ## 0.1.2 all_ym_bar####
   output$all_ym_bar <- renderPlotly({
     YM_ALL_WSK_grouped <- YM_ALL_WSK %>%
@@ -350,9 +423,20 @@ shinyServer(function(input, output, session) {
       Wart_COL = "WCSN_DEF",
       WSK_COL = "WSK_DEF"
     )
-    
-    
   })
+   
+   
+   ## 0.1.7 dt_custom_select ####
+   output$dt_custom_select <- renderDataTable({
+     data_table_plotly(
+       dataToShow = dataToPlot_custom(),
+       source = "custom_scatter",
+       points = NA,
+       Wart_COL = "WCSN_CUSTOM",
+       WSK_COL = "WSK_CUSTOM"
+     )
+   })
+   
   
   
   
@@ -422,9 +506,23 @@ shinyServer(function(input, output, session) {
       name2 = "Sprzedaż refundacji"
     )
     
-    
   })
   
+   ## 0.1.12 ym_custom_plot_select ####
+   output$ym_custom_plot_select <- renderPlotly({
+     ym_select_plotly(
+       dataToPlot = dataToPlot_custom(),
+       source = "custom_scatter",
+       points = NA,
+       Wart_COL = "WCSN_CUSTOM",
+       name1 = "Sprzedaż pozostała",
+       name2 = "Sprzedaż wybranych preparatów",
+       customdata = dataToPlot_custom_fetch()
+     )
+     
+   }) 
+   
+   
   ##CKK do kanibalizacji####
   Kanibalizacja_CKK <- reactive({
     
@@ -590,96 +688,103 @@ shinyServer(function(input, output, session) {
     input$goButton_download_excel
     
     ret1 <- isolate({
-      d1 <- as.numeric(som(input$dateRange_excel[1])) * 86400
-      d2 <- as.numeric(eom(input$dateRange_excel[2])) * 86400
       
-      
-      d1 <- as.POSIXct(d1, origin = "1970-01-01 00:00:00 UTC")
-      d2 <- as.POSIXct(d2, origin = "1970-01-01 00:00:00 UTC")
-      
-      
-      hour(d1) <- 0
-      minute(d1) <- 0
-      second(d1) <- 0
-      
-      hour(d2) <- 23
-      minute(d2) <- 59
-      second(d2) <- 59
-      
-      d1 <- as.numeric(d1)
-      d2 <- as.numeric(d2)
-      
-      input$goButton_download_excel
-      CKK_apteki <- isolate(as.numeric(input$ckk_raport_download))
-      
-      DaneDuzaBaza_tab1 <- tbl(myDB, "tab1") %>%
-        filter(CKK == CKK_apteki) %>%
-        filter(DATA_ZAFAKTUROWANIA >= d1, DATA_ZAFAKTUROWANIA <= d2) %>%
-        group_by(CKK, CKT, DATA_ZAFAKTUROWANIA) %>%
-        summarise(
-          WCSN = sum(WCSN, na.rm = T),
-          WCSN_PO_RABATACH = sum(WCSN_PO_RABATACH, na.rm = T),
-          ILOSC = sum(ILOSC, na.rm = T),
-          LICZBA_WIERSZY = n()
-        ) %>%
-        collect() %>%
-        left_join(select(BAZA_CKT, ID, NAZWA_OFERTOWA, Opis_caly),
-                  by = c("CKT" = "ID")) %>%
-        ungroup() %>%
-        mutate(
-          DATA_ZAFAKTUROWANIA = as.POSIXct(DATA_ZAFAKTUROWANIA, origin = "1970-01-01 00:00:00 UTC"),
-          YM = str_sub(as.character(DATA_ZAFAKTUROWANIA), 1, 7)
-        )
-      
-      
-      DanePSEDO <- DaneDuzaBaza_tab1 %>%
-        semi_join(BAZA_PSEUDO, by = c("CKT" = "ID"))
-      
-      DaneDEF <- DaneDuzaBaza_tab1 %>%
-        inner_join(BAZA_DEF, by = c("CKT" = "ID"))
-      
-      
-      DaneREF <- DaneDuzaBaza_tab1 %>%
-        inner_join(BAZA_REF, by = c("CKT" = "ID")) %>%
-        mutate(
-          START = as.POSIXct.Date(START, origin = "1970-01-01 00:00:00 UTC"),
-          KONIEC = as.POSIXct.Date(KONIEC, origin = "1970-01-01 00:00:00 UTC")
-        ) %>%
-        mutate(WCSN_REF = ifelse(
-          DATA_ZAFAKTUROWANIA >= START &
-            DATA_ZAFAKTUROWANIA <= KONIEC,
-          WCSN,
-          0
-        ))
-      
-      DaneDEF2 <- DaneDEF %>%
-        mutate(
-          START = as.POSIXct.Date(START, origin = "1970-01-01 00:00:00 UTC"),
-          KONIEC = as.POSIXct.Date(KONIEC, origin = "1970-01-01 00:00:00 UTC")
-        ) %>%
-        mutate(WCSN_DEF = ifelse(
-          DATA_ZAFAKTUROWANIA >= START &
-            DATA_ZAFAKTUROWANIA <= KONIEC,
-          WCSN,
-          0
-        ))
-      
-      Legenda <- tibble()
-      Podsum <- tibble()
-      
-      ret <- list(
-        Legenda = Legenda,
-        Podsum = Podsum,
-        Dane_zrodlowe = DaneDuzaBaza_tab1,
-        Pseudoefedryna = DanePSEDO,
-        Deficyty = DaneDEF,
-        Deficyty_czas_lista = DaneDEF2,
-        Refundacja = DaneREF
-      )
-      
-      return(ret)
+                  ExportRaportExcelDlaAptekiLubCKP(input_data_start = input$dateRange_excel[1],
+                                                   input_data_koniec = input$dateRange_excel[2],
+                                                   CKK = input$ckk_raport_download,
+                                                   Platnik = input$ckp_raport_download)
       
     })
+      # d1 <- as.numeric(som(input$dateRange_excel[1])) * 86400
+      # d2 <- as.numeric(eom(input$dateRange_excel[2])) * 86400
+      # 
+      # 
+      # d1 <- as.POSIXct(d1, origin = "1970-01-01 00:00:00 UTC")
+      # d2 <- as.POSIXct(d2, origin = "1970-01-01 00:00:00 UTC")
+      # 
+      # 
+      # hour(d1) <- 0
+      # minute(d1) <- 0
+      # second(d1) <- 0
+      # 
+      # hour(d2) <- 23
+      # minute(d2) <- 59
+      # second(d2) <- 59
+      # 
+      # d1 <- as.numeric(d1)
+      # d2 <- as.numeric(d2)
+      # 
+      # input$goButton_download_excel
+      # CKK_apteki <- isolate(as.numeric(input$ckk_raport_download))
+      # 
+      # DaneDuzaBaza_tab1 <- tbl(myDB, "tab1") %>%
+      #   filter(CKK == CKK_apteki) %>%
+      #   filter(DATA_ZAFAKTUROWANIA >= d1, DATA_ZAFAKTUROWANIA <= d2) %>%
+      #   group_by(CKK, CKT, DATA_ZAFAKTUROWANIA) %>%
+      #   summarise(
+      #     WCSN = sum(WCSN, na.rm = T),
+      #     WCSN_PO_RABATACH = sum(WCSN_PO_RABATACH, na.rm = T),
+      #     ILOSC = sum(ILOSC, na.rm = T),
+      #     LICZBA_WIERSZY = n()
+      #   ) %>%
+      #   collect() %>%
+      #   left_join(select(BAZA_CKT, ID, NAZWA_OFERTOWA, Opis_caly),
+      #             by = c("CKT" = "ID")) %>%
+      #   ungroup() %>%
+      #   mutate(
+      #     DATA_ZAFAKTUROWANIA = as.POSIXct(DATA_ZAFAKTUROWANIA, origin = "1970-01-01 00:00:00 UTC"),
+      #     YM = str_sub(as.character(DATA_ZAFAKTUROWANIA), 1, 7)
+      #   )
+      # 
+      # 
+      # DanePSEDO <- DaneDuzaBaza_tab1 %>%
+      #   semi_join(BAZA_PSEUDO, by = c("CKT" = "ID"))
+      # 
+      # DaneDEF <- DaneDuzaBaza_tab1 %>%
+      #   inner_join(BAZA_DEF, by = c("CKT" = "ID"))
+      # 
+      # 
+      # DaneREF <- DaneDuzaBaza_tab1 %>%
+      #   inner_join(BAZA_REF, by = c("CKT" = "ID")) %>%
+      #   mutate(
+      #     START = as.POSIXct.Date(START, origin = "1970-01-01 00:00:00 UTC"),
+      #     KONIEC = as.POSIXct.Date(KONIEC, origin = "1970-01-01 00:00:00 UTC")
+      #   ) %>%
+      #   mutate(WCSN_REF = ifelse(
+      #     DATA_ZAFAKTUROWANIA >= START &
+      #       DATA_ZAFAKTUROWANIA <= KONIEC,
+      #     WCSN,
+      #     0
+      #   ))
+      # 
+      # DaneDEF2 <- DaneDEF %>%
+      #   mutate(
+      #     START = as.POSIXct.Date(START, origin = "1970-01-01 00:00:00 UTC"),
+      #     KONIEC = as.POSIXct.Date(KONIEC, origin = "1970-01-01 00:00:00 UTC")
+      #   ) %>%
+      #   mutate(WCSN_DEF = ifelse(
+      #     DATA_ZAFAKTUROWANIA >= START &
+      #       DATA_ZAFAKTUROWANIA <= KONIEC,
+      #     WCSN,
+      #     0
+      #   ))
+      # 
+      # Legenda <- tibble()
+      # Podsum <- tibble()
+      # 
+      # ret <- list(
+      #   Legenda = Legenda,
+      #   Podsum = Podsum,
+      #   Dane_zrodlowe = DaneDuzaBaza_tab1,
+      #   Pseudoefedryna = DanePSEDO,
+      #   Deficyty = DaneDEF,
+      #   Deficyty_czas_lista = DaneDEF2,
+      #   Refundacja = DaneREF
+      # )
+      # 
+      # return(ret)
+      
+   
     
     
     # for (i in 1:5) {
@@ -696,8 +801,11 @@ shinyServer(function(input, output, session) {
   output$raport_excel_apteka <- downloadHandler(
     filename = function() {
       CKK_apteki <- as.numeric(input$ckk_raport_download)
+      CKP_apteki <- as.numeric(input$ckk_raport_download)
       
-      filename <-  paste0(CKK_apteki,
+      front <- ifelse(is.na(CKK_apteki), CKP_apteki, CKK_apteki)
+      
+      filename <-  paste0("Raport",
                           "_",
                           paste(
                             stringr::str_extract_all(Sys.time(), pattern = "[0-9]", simplify = T),
@@ -737,6 +845,7 @@ shinyServer(function(input, output, session) {
         d1 = input$dateRange_pseudo[1],
         d2 = input$dateRange_pseudo[2],
         CKP = CKP_pseudo(),
+        CKK = 0,
         points = event_data("plotly_selected", source = "pseudo_scatter")$pointNumber
       )
       

@@ -25,7 +25,7 @@ dashboardPage(
     menuItem("Przegląd pseudoefedryny", tabName = "pseudoefedryna"),
     menuItem("Przegląd deficytów", tabName = "deficyty"),
     menuItem("Przegląd refundowanych", tabName = "refundacja"),
-    #menuItem("Przegląd wybranych CKT", tabName = "custom_ckk"),
+    menuItem("Przegląd wybranych CKT", tabName = "custom_ckk"),
     menuItem("Kanibalizacja rynku", tabName = "kanibalizm"),
     menuItem("Export danych do excel", tabName = "export_excel")#,
     #menuItem("Generowanie raportów HTML", tabName = "ymplot")
@@ -39,6 +39,10 @@ dashboardPage(
                     inputId = 'ckk_raport_download', label = 'Wybierz/wpisz CKK apteki',
                     choices = NULL,
                     selected = 16571),
+                  selectizeInput(
+                    inputId = 'ckp_raport_download', label = 'Wybierz/wpisz CKP Płatnika',
+                    choices = NULL,
+                    selected = 2001),
                   dateRangeInput(
                     'dateRange_excel',
                     label = 'Wybierz okres: RRRR-MM-DD',
@@ -163,14 +167,14 @@ dashboardPage(
             "Wskaźnik udziału wybranych preparatów w zakupach:",
             min = 0,
             max = 100,
-            value = 50
+            value = 0
           ),
           sliderInput(
             "Wart_custom",
             "Wartość wybranych preparatów w tys zł:",
             min = 0,
             max = 1000,
-            value = 50
+            value = 0
           ),
           dateRangeInput(
             'dateRange_custom',
@@ -178,12 +182,20 @@ dashboardPage(
             start = ymd("2016-06-01"),
             end = Sys.Date()
           ),
+          selectizeInput(
+            inputId = 'ckp_custom_wybor', label = 'Wybierz/wpisz CKP Płatnika',
+            choices = NULL
+          ),
+          selectizeInput(
+            inputId = 'ckt_custom_multi', label = 'Wybierz/wpisz CKT preparatu',
+            choices = NULL, multiple = T
+          ),
           actionButton("goButton_custom", "Filtruj!"),
           downloadButton("download_custom_widok", "Pobierz widok")
         ),
         box(
           width = 8,
-          title = "Apteki kupujące preparaty refundowane",
+          title = "Apteki kupujące wybrane preparaty",
           plotlyOutput("custom_scatter_plot")
         ),
         box(width = 12,
@@ -252,22 +264,6 @@ dashboardPage(
         dataTableOutput("kanibalizm_dt")
       )
     
-     
-    ),
-    tabItem(
-      "ymplot",
-      box(
-        width = 12,
-        title = "Przegląd pseudoefedryny apteki okresy",
-        selectInput(
-          'in6',
-          'Options',
-          CKKdoWyboru$CKK,
-          multiple = TRUE,
-          selectize = TRUE
-        ),
-        plotlyOutput("pseudoPlotYM_CKK")
-      )
      
     ),
     tabItem(
