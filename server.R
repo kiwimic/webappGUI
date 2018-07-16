@@ -49,6 +49,13 @@ shinyServer(function(input, output, session) {
     server = TRUE
   )
   
+  updateSelectizeInput(
+    session = session,
+    inputId = "ckt_custom_multi",
+    choices = c(Choose = '', unique(BAZA_CKT$ID)),
+    server = TRUE
+  )
+  
   ###CKP_DEF##
   CKP_def <- reactive({
     
@@ -729,6 +736,7 @@ shinyServer(function(input, output, session) {
         input_proc = input$Proc_pseudo,
         d1 = input$dateRange_pseudo[1],
         d2 = input$dateRange_pseudo[2],
+        CKP = CKP_pseudo(),
         points = event_data("plotly_selected", source = "pseudo_scatter")$pointNumber
       )
       
@@ -812,6 +820,7 @@ shinyServer(function(input, output, session) {
         input_proc = input$Proc_ref,
         d1 = input$dateRange_ref[1],
         d2 = input$dateRange_ref[2],
+        CKP = CKP_ref(),
         points = event_data("plotly_selected", source = "ref_scatter")$pointNumber
       )
       
