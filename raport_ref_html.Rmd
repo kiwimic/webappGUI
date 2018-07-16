@@ -9,6 +9,7 @@ params:
   d1 : "2016-06-01"
   d2 : "2018-05-31"
   points : 0
+  CKP : 0
 ---
 
 Data wygenerowania raportu: `r Sys.time()`
