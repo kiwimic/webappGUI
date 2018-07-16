@@ -25,10 +25,10 @@ dashboardPage(
     menuItem("Przegląd pseudoefedryny", tabName = "pseudoefedryna"),
     menuItem("Przegląd deficytów", tabName = "deficyty"),
     menuItem("Przegląd refundowanych", tabName = "refundacja"),
-    menuItem("Przegląd wybranych CKT", tabName = "custom_ckk"),
+    #menuItem("Przegląd wybranych CKT", tabName = "custom_ckk"),
     menuItem("Kanibalizacja rynku", tabName = "kanibalizm"),
-    menuItem("Export danych do excel", tabName = "export_excel"),
-    menuItem("Generowanie raportów HTML", tabName = "ymplot")
+    menuItem("Export danych do excel", tabName = "export_excel")#,
+    #menuItem("Generowanie raportów HTML", tabName = "ymplot")
   )),
   ## 0.1.3 Body #####
   dashboardBody(

@@ -10,6 +10,7 @@ params:
   d2 : "2018-05-31"
   points : 0
   CKP : 0
+  CKK : 0
 ---
 
 Data wygenerowania raportu: `r Sys.time()`
@@ -27,6 +28,8 @@ source("C:/Users/msiwik/Desktop/FOLDER R/GUI_consensus/global.r", encoding = "UT
 
  dataToPlot <- DaneDoScatter(
       dane = YM_ALL_WSK,
+      Platnik = params$CKP,
+      CKK = NA,
       input_data_start = params$d1,
       input_data_koniec = params$d2,
       input_proc = params$input_proc,
